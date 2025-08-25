@@ -34,8 +34,9 @@ class User extends AppModel
 				'message' => 'ログインIDが重複しています'
 			],
 			[
-				'rule' => 'alphaNumericMB',
-				'message' => 'ログインIDは英数字で入力して下さい'
+				//'rule' => 'alphaNumericMB',
+				'rule'=> array('custom', '/^[a-zA-Z0-9\.\_]+$/'),
+				'message' => 'ログインIDは英数字._で入力して下さい'
 			],
 			[
 				'rule' => ['between', 4, 32],
