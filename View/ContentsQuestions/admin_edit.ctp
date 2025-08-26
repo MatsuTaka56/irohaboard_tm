@@ -179,6 +179,7 @@
 				echo $this->Form->input('comment',	['label' => __('備考')]);
 				echo Configure::read('form_submit_before')
 					.$this->Form->submit(__('保存'), Configure::read('form_submit_defaults'))
+					.' <button id="btnCancel" class="btn btn-default" onclick="history.back(); return false;">キャンセル</button>'
 					.Configure::read('form_submit_after');
 				echo $this->Form->end();
 			?>
