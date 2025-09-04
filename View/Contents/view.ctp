@@ -43,6 +43,16 @@
 		case 'url': // URLコンテンツ
 			$body = '<iframe id="contentFrame" width="100%" height="100%" scrolling="yes" src="'.h($content['Content']['url']).'"></iframe>';
 			break;
+		case 'pict': // 画像コンテンツ
+			$url = h($content['Content']['url']);
+
+			if(strpos($url, 'http') === false)
+			{
+				$url = Router::url(['controller' => 'contents', 'action' => 'file_pict', $content['Content']['id']]);
+			}
+
+			$body = '<p><img src="'.$url.'"  data-filename="pict" id="imgsrc" style="width: 100%;"></p>';
+			break;
 		case 'movie': // 動画コンテンツ
 			$url = h($content['Content']['url']);
 

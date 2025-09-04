@@ -293,6 +293,51 @@ class ContentsController extends AppController
 		$this->response->file($file_path, ['download' => false, 'name' => $safe_file_name]);
 		return $this->response;
 	}
+	
+	/**
+	 * 画像ファイルのプレビュー
+	 * @param int $file_name ファイル名
+	 */
+	public function admin_preview_pict($file_name)
+	{
+		// ファイルが指定されていない場合
+		if(!$file_name)
+		{
+			throw new NotFoundException(__('Invalid content'));
+		}
+		
+		$safe_file_name = basename($file_name); // セキュリティ対策
+		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$safe_file_name;
+		
+		$upload_extensions = (array)Configure::read('upload_image_extensions');
+		$extension = "." . pathinfo($safe_file_name, PATHINFO_EXTENSION);
+
+		// 画像ファイル以外が指定されている場合
+		if(!in_array($extension, $upload_extensions))
+		{
+			throw new NotFoundException(__('Invalid content'));
+		}
+
+		// ファイル名が英数字、ピリオド、ハイフン、アンダースコア以外の場合
+		if(!preg_match('/^[a-zA-Z0-9\.\-_]+$/', $safe_file_name))
+		{
+			throw new NotFoundException(__('Invalid content'));
+		}
+
+		// ファイルが存在しない場合
+		if(!file_exists($file_path))
+		{
+			$file_path = WWW_ROOT.DS.'uploads'.DS.$safe_file_name;
+			
+			if(!file_exists($file_path))
+			{
+				throw new NotFoundException(__('File not found'));
+			}
+		}
+		
+		$this->response->file($file_path, ['download' => false, 'name' => $safe_file_name]);
+		return $this->response;
+	}
 
 	/**
 	 * セッションに保存された情報を元にプレビュー
@@ -306,7 +351,7 @@ class ContentsController extends AppController
 	}
 
 	/**
-	 * ファイル（配布資料、動画）のアップロード
+	 * ファイル（配布資料、動画、画像）のアップロード
 	 *
 	 * @param int $file_type ファイルの種類
 	 */
@@ -329,6 +374,7 @@ class ContentsController extends AppController
 				$upload_maxsize = Configure::read('upload_maxsize');
 				break;
 			case 'image' :
+			case 'pict' :
 				$upload_extensions = (array)Configure::read('upload_image_extensions');
 				$upload_maxsize = Configure::read('upload_image_maxsize');
 				break;
@@ -660,6 +706,67 @@ class ContentsController extends AppController
 		$extension = "." . pathinfo($safe_file_name, PATHINFO_EXTENSION);
 
 		// 動画ファイル以外が指定されている場合
+		if(!in_array($extension, $upload_extensions))
+		{
+			throw new NotFoundException(__('Invalid content'));
+		}
+
+		// ファイルが存在しない場合
+		if(!file_exists($file_path))
+		{
+			$file_path = WWW_ROOT.DS.'uploads'.DS.$safe_file_name;
+			
+			if(!file_exists($file_path))
+			{
+				throw new NotFoundException(__('File not found'));
+			}
+		}
+		
+		$this->response->file($file_path, ['download' => false, 'name' => $safe_file_name]);
+		return $this->response;
+	}
+
+	/**
+	 * 画像ファイルの表示
+	 * @param int $file_name ファイル名
+	 */
+	public function file_pict($content_id)
+	{
+		$content_id = intval($content_id);
+
+		// コンテンツが存在しない場合
+		if(!$this->Content->exists($content_id))
+		{
+			throw new NotFoundException(__('Invalid content'));
+		}
+		
+		$content = $this->Content->get($content_id);
+		
+		// コンテンツの閲覧権限の確認
+		if(!$this->fetchTable('Course')->hasRight($this->readAuthUser('id'), $content['Content']['course_id']))
+		{
+			throw new NotFoundException(__('Invalid access'));
+		}
+
+		// 管理者以外の場合、非公開コンテンツへのアクセスを禁止
+		if($this->readAuthUser('role') != 'admin' && $content['Content']['status'] != 1)
+		{
+			throw new NotFoundException(__('Invalid access'));
+		}
+
+		// 画像コンテンツ以外の場合、アクセスを禁止
+		if($content['Content']['kind'] != 'pict')
+		{
+			throw new NotFoundException(__('Invalid content'));
+		}
+
+		$safe_file_name = basename($content['Content']['url']); // セキュリティ対策
+		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$safe_file_name;
+		
+		$upload_extensions = (array)Configure::read('upload_image_extensions');
+		$extension = "." . pathinfo($safe_file_name, PATHINFO_EXTENSION);
+
+		// 画像ファイル以外が指定されている場合
 		if(!in_array($extension, $upload_extensions))
 		{
 			throw new NotFoundException(__('Invalid content'));

@@ -18,8 +18,8 @@
 			if(!content_kind)
 				return false;
 			
-			// 動画以外の場合にはアップロードの種別を一律ファイルに変更
-			if(content_kind != 'movie')
+			// 画像、動画以外の場合にはアップロードの種別を一律ファイルに変更
+			if((content_kind != 'movie') && (content_kind != 'pict'))
 				content_kind = 'file';
 			
 			// アップロード画面を表示
@@ -73,9 +73,11 @@
 			case 'html': // リッチテキスト
 				// リッチテキストエディタを起動
 				CommonUtil.setRichTextEditor('#ContentBody', <?= Configure::read('upload_image_maxsize') ?>, '<?= $this->webroot ?>');
+				$('#btnUpload').hide();
 				$('#btnPreview').show();
 				break;
 			case 'movie': // 動画
+			case 'pict': // 画像
 				$('.form-control-upload').css('width', '80%');
 				$('#btnUpload').show();
 				$('#btnPreview').show();
@@ -105,6 +107,11 @@
 		{
 			file_name = content_url.split('/').pop();
 			content_url = '<?= Router::url(['controller' => 'contents', 'action' => 'preview_movie'], true)?>/' + file_name;
+		}
+		else if((content_kind == 'pict') && (!content_url.startsWith('http')))
+		{
+			file_name = content_url.split('/').pop();
+			content_url = '<?= Router::url(['controller' => 'contents', 'action' => 'preview_pict'], true)?>/' + file_name;
 		}
 
 		// プレビュー内容を保存
@@ -170,7 +177,7 @@
 			echo $this->Form->inputRadio('kind', ['label' => __('コンテンツ種別'), 'separator'=>"<br>", 'options' => Configure::read('content_kind_comment')]);
 
 			// URL
-			echo '<div class="kind kind-movie kind-url kind-file">';
+			echo '<div class="kind kind-movie kind-pict kind-url kind-file">';
 			echo $this->Form->input('url', ['label' => __('URL'), 'class' => 'form-control form-control-upload']);
 			echo '</div>';
 			
@@ -185,7 +192,7 @@
 			echo '</div>';
 
 			// テスト用設定 start
-			echo '<span class="kind kind-test">';
+			echo '<div class="kind kind-test">';
 			echo $this->Form->inputExp('timelimit', ['label' => __('制限時間 (1-100分)')], __('指定した場合、制限時間を過ぎると自動的に採点されます。'));
 			echo $this->Form->inputExp('pass_rate', ['label' => __('合格とする得点率 (1-100%)')], __('指定した場合、合否の判定が行われ、指定しない場合は無条件に合格となります。'));
 			
@@ -196,7 +203,7 @@
 			echo $this->Form->inputRadio('wrong_mode', ['label' => __('不正解時の表示'), 'options' => Configure::read('wrong_mode'), 'default' => 2],
 				__('テスト結果画面にて不正解の問題の表示方法を指定します。正解時は解説のみが表示されます。'));
 			
-			echo '</span>';
+			echo '</div>';
 			// テスト用設定 end
 
 			// ステータス
@@ -211,9 +218,9 @@
 			}
 
 			// 備考
-			echo '<span class="kind kind-text kind-html kind-movie kind-url kind-file kind-test">';
+			echo '<div class="kind kind-text kind-html kind-movie kind-pict kind-url kind-file kind-test">';
 			echo $this->Form->input('comment', ['label' => __('備考')]);
-			echo '</span>';
+			echo '</div>';
 			
 			// 保存ボタン
 			echo Configure::read('form_submit_before')

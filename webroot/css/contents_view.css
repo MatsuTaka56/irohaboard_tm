@@ -46,6 +46,13 @@ html, body
 	align-items			: center;
 }
 
+.content-body-pict
+{
+	overflow-y			: scroll;
+	display: flex;
+	justify-content: center;
+}
+
 .content-foot
 {
 	position			: fixed;
