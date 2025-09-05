@@ -22,7 +22,7 @@ $(document).ready(function()
 });
 
 // 学習終了
-function finish(val)
+function finish(val, nextpage = 0)
 {
 	// 学習履歴の重複記録防止の為、ボタンを無効化
 	$('.btn').prop('disabled', true);
@@ -37,7 +37,14 @@ function finish(val)
 	// 学習履歴を残さずに終了の場合
 	if(val == -1)
 	{
-		location.href = URL_CONTNES_INDEX;
+		if(nextpage == 0)
+		{
+			location.href = URL_CONTNES_INDEX;
+		}
+		else
+		{
+			location.href = URL_CONTNES_VIEW + "/" + nextpage;
+		}
 		return;
 	}
 

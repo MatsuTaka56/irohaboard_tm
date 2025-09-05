@@ -96,7 +96,33 @@ class ContentsController extends AppController
 		{
 			throw new NotFoundException(__('Invalid access'));
 		}
-		
+
+		// 前後ページの確認
+		$content['Content']['prev_page'] = 0;
+		$content['Content']['next_page'] = 0;
+		$next_content = $this->fetchTable('Content')->find()
+					->where(['Content.sort_no < ' => $content['Content']['sort_no'], 
+							'Content.course_id' => $content['Content']['course_id'],
+							'NOT' => ['Content.kind IN' => ['test','file','label']],
+							'Content.status' => 1])
+					->order(['Content.sort_no' => 'DESC'])
+					->first();
+		if($next_content != null)
+		{
+			$content['Content']['prev_page'] = $next_content['Content']['id'];
+		}
+		$next_content = $this->fetchTable('Content')->find()
+					->where(['Content.sort_no > ' => $content['Content']['sort_no'], 
+							'Content.course_id' => $content['Content']['course_id'],
+							'NOT' => ['Content.kind IN' => ['test','file','label']],
+							'Content.status' => 1])
+					->order(['Content.sort_no' => 'ASC'])
+					->first();
+		if($next_content != null)
+		{
+			$content['Content']['next_page'] = $next_content['Content']['id'];
+		}
+
 		$this->set(compact('content'));
 	}
 
@@ -244,6 +270,8 @@ class ContentsController extends AppController
 					'id'	 => 0,
 				]
 			];
+			$data['Content']['prev_page'] = 1;
+			$data['Content']['next_page'] = 1;
 			
 			$this->writeSession("Iroha.preview_content", $data);
 		}
