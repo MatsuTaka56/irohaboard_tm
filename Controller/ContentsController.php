@@ -881,4 +881,377 @@ class ContentsController extends AppController
 		$this->response->file($file_path, ['download' => false, 'name' => $safe_file_name]);
 		return $this->response;
 	}
+
+
+	/**
+	 * コンテンツ情報のエクスポート
+	 */
+	public function admin_export($course_id)
+	{
+		// コースの情報を取得
+		$course = $this->fetchTable('Course')->get($course_id);
+		$course_name = $course['Course']['title'];
+		
+		$this->autoRender = false;
+		Configure::write('debug', 0);
+
+		//Content-Typeを指定
+		$this->response->type('csv');
+		
+		header('Content-Type: text/csv');
+		header('Content-Disposition: attachment; filename="'.$course_name.'_'.date('Ymd').'.csv"');
+		
+		$fp = fopen('php://output','w');
+		
+		$header_list = Configure::read('export_content_header');
+		//------------------------------//
+		//	ヘッダー行の作成			//
+		//------------------------------//
+		$header = array();
+		foreach ($header_list as $key => $val)
+		{
+			$header[] = __($val.' ');
+		}
+		
+		// ヘッダー行をCSV出力
+		mb_convert_variables('SJIS-win', 'UTF-8', $header);
+		fputcsv($fp, $header);
+		
+		//------------------------------//
+		//	コンテンツ情報の取得			//
+		//------------------------------//
+		
+		// パフォーマンスの改善の為、一定件数に分割してデータを取得
+		$limit      = 500;
+		$content_count = $this->Content->find()
+			->where(['course_id' => $course_id])
+			->count();	// コンテンツ数を取得
+		$page_size  = ceil($content_count / $limit);	// ページ数（ユーザ数 / ページ単位）
+		
+		// ページ単位でコンテンツを取得
+		for($page=1; $page <= $page_size; $page++)
+		{
+			// コンテンツ情報を取得
+			$this->Content->recursive = 1;
+			$rows = $this->Content->find()
+				->where(['course_id' => $course_id])
+				->limit($limit)
+				->page($page)
+				->order('Content.sort_no asc')
+				->all();
+			
+			foreach($rows as $row)
+			{
+				//------------------------------//
+				//	出力するデータを作成		//
+				//------------------------------//
+				// 出力行を作成
+				$line = array();
+				foreach ($header_list as $key => $val)
+				{
+					switch ($key) {
+						case 'kind':
+							$line[] = Configure::read('content_kind.'.$row['Content']['kind']);
+							break;
+						case 'status':
+							$line[] = Configure::read('content_status.'.$row['Content']['status']);
+							break;
+						default:
+							$line[] = $row['Content'][$key];
+					}
+				}
+
+				// CSV出力
+				mb_convert_variables('SJIS-win', 'UTF-8', $line);
+				fputcsv($fp, $line);
+			}
+		}
+		
+		fclose($fp);
+	}
+
+	/**
+	 * コンテンツ情報のインポート
+	 */
+	public function admin_import($course_id)
+	{
+		if(Configure::read('demo_mode'))
+			return;
+
+		$err_msg = '';
+		
+		if($this->request->is(['post', 'put']))
+		{
+			//------------------------------//
+			//	列番号の定義				//
+			//------------------------------//
+
+			$header_list = Configure::read('import_content_header');
+			$col_no = 0;
+			foreach ($header_list as $key => $val)
+			{
+				$col_list[$val] = $col_no;
+				$col_no++;
+			}
+
+			//------------------------------//
+			//	CSVファイルの読み込み		//
+			//------------------------------//
+			// 制限時間を120秒に設定
+			set_time_limit(120);
+			
+			$csvfile = $this->request->data['Content']['csvfile'];
+			
+			// インポートファイルが指定されていない場合、エラーメッセージを表示
+			if($csvfile['error'] != 0)
+			{
+				$this->Flash->error(__('インポートファイルが指定されていません'));
+				$this->set(compact('err_msg'));
+				return;
+			}
+			
+			// CSVファイルの読み込み
+			$csv = Utils::getCsvData($csvfile['tmp_name']);
+			
+			$i = 0;
+			
+			$ds = $this->Content->getDataSource();
+			$ds->begin();
+			
+			try
+			{
+				$is_error = false;
+
+				// 該当コースのコンテンツに削除フラグを立てる
+				$contents_course = $this->Content->find()
+					->where(['Content.course_id' => $course_id])
+					->all();
+				foreach($contents_course as $content_dell)
+				{
+					$content_dell['Content']['deleted'] = date('Y-m-d H:i:s');	//削除日付の設定
+					$content_dell['Content']['status'] = 0;						//非表示の設定
+					if(!$this->Content->save($content_dell))
+					{
+						// 保存時にエラーが発生した場合、モデルからエラー情報を抽出
+						$err_list = $this->User->validationErrors;
+						foreach($err_list as $err)
+						{
+							$err_msg .= '<li>'.$i.'行目 : '.$err[0].'</li>';
+						}
+						$is_error = true;
+					}
+				}
+
+				// 1行ごとにデータを登録
+				$header_def = array_keys($header_list);
+				foreach($csv as $row)
+				{
+					$i++;	//行カウンタ＋１
+					
+					if($i == 1)		//ヘッダ行（1行目）
+					{
+						// 列順序を確認する
+						foreach($row as $index => $header_import)
+						{
+							if($index >= count($header_def)) break;
+							if(trim($header_import) != $header_def[$index])
+							{
+								$is_error = true;
+								$err_msg .= '<li>'.$i.'行目 : ヘッダ項目が一致しません</li>';
+								break;
+							}
+						}
+						if($is_error) break;	//ヘッダ行不良 => import処理中断
+						continue;			// ヘッダ行正常 => 次の行へ
+					}
+					
+					if(count($row) < count($header_def))	// ヘッダ項目数以下の行はスキップ
+						continue;
+					
+					$is_new = false;
+					
+					//------------------------------//
+					//	コンテンツ情報の作成			//
+					//------------------------------//
+					$data = $this->Content->find()
+						->where(['Content.course_id' => $course_id])
+						->where(['Content.deleted !=' => null])
+						->first();
+					
+					// 指定したコースIDおよび削除日付有のコンテンツが存在しない場合、新規追加とする
+					if(!$data)
+					{
+						$data = [];
+						$data['Content'] = [];
+						$this->Content->create();
+						$data['Content']['created'] = date('Y-m-d H:i:s');
+						$is_new = true;
+					}
+					//importデータの指定の有無を確認しながらコンテンツデータを作成する
+					//$data['Content']['id'] = $row[COL_id];
+					$data['Content']['course_id'] = $course_id;
+					$data['Content']['user_id'] = 1;
+
+					$data['Content']['sort_no'] = $i - 1;
+
+					if($row[$col_list['title']] == null) 
+					{
+						$is_error = true;
+						$err_msg .= '<li>'.$i.'行目 : コンテンツ名が指定されていません。</li>';
+						break;
+					}
+					$data['Content']['title'] = $row[$col_list['title']];
+
+					if(Utils::getKeyByValue('content_kind', $row[$col_list['kind']]) == null) 
+					{
+						$is_error = true;
+						$err_msg .= '<li>'.$i.'行目 : コンテンツ種別が指定されていません。</li>';
+						break;
+					}
+					$data['Content']['kind'] = Utils::getKeyByValue('content_kind', $row[$col_list['kind']]);
+
+					if(in_array($data['Content']['kind'],['movie', 'file', 'pict']))
+					{
+						if($row[$col_list['file_name']] == null) 
+						{
+							$is_error = true;
+							$err_msg .= '<li>'.$i.'行目 : ファイル名が指定されていません('.$data['Content']['kind'].')。</li>';
+							break;
+						}
+						else
+						{
+							$data['Content']['file_name'] = $row[$col_list['file_name']];
+						}
+					}
+						
+					if(in_array($data['Content']['kind'],['url', 'movie', 'file', 'pict']))
+					{
+						if($row[$col_list['url']] == null) 
+						{
+							$is_error = true;
+							$err_msg .= '<li>'.$i.'行目 : URLが指定されていません('.$data['Content']['kind'].')。</li>';
+							break;
+						}
+						else
+						{
+							$data['Content']['url'] = $row[$col_list['url']];
+						}
+					}
+						
+					if(in_array($data['Content']['kind'],['html']))
+					{
+						if($row[$col_list['body']] == null) 
+						{
+							$data['Content']['body'] = '<p><br></p>';
+						}
+						else
+						{
+							$data['Content']['body'] = $row[$col_list['body']];
+						}
+					}
+
+					if($data['Content']['kind'] == 'test')
+					{
+						list($is_error, $err_msg) = $this -> test_num_check($row[$col_list['timelimit']], 1, 100, $i, 'テスト制限時間', $err_msg);
+						if($is_error) break;
+						$data['Content']['timelimit'] = $row[$col_list['timelimit']];
+
+						list($is_error, $err_msg) = $this -> test_num_check($row[$col_list['pass_rate']], 1, 100, $i, '合格得点率 ', $err_msg);
+						if($is_error) break;
+						$data['Content']['pass_rate'] = $row[$col_list['pass_rate']];
+
+						list($is_error, $err_msg) = $this -> test_num_check($row[$col_list['question_count']], 1, 100, $i, '出題数 ', $err_msg);
+						if($is_error) break;
+						$data['Content']['question_count'] = $row[$col_list['question_count']];
+
+						list($is_error, $err_msg) = $this -> test_num_check($row[$col_list['wrong_mode']], 1, 3, $i, '不正解時の表示', $err_msg);
+						if($is_error) break;
+						if($row[$col_list['wrong_mode']] == null) 
+						{
+							$data['Content']['wrong_mode'] = 2;
+						}
+						else
+						{
+							$data['Content']['wrong_mode'] = $row[$col_list['wrong_mode']];
+						}
+					}
+
+					if(Utils::getKeyByValue('content_status', $row[$col_list['status']]) == null) 
+					{
+						$data['Content']['status'] = 1;
+					}
+					else
+					{
+						$data['Content']['status'] = Utils::getKeyByValue('content_status', $row[$col_list['status']]);
+					}
+					
+					$data['Content']['opened'] = null;
+					//$data['Content']['created'] = $row[COL_created];
+					$data['Content']['modified'] = date('Y-m-d H:i:s');
+					$data['Content']['deleted'] = null;
+					$data['Content']['comment'] = Utils::issetOr($row[$col_list['comment']]);
+					
+					//------------------------------//
+					//	保存						//
+					//------------------------------//
+					if(!$this->Content->save($data))
+					{
+						// 保存時にエラーが発生した場合、モデルからエラー情報を抽出
+						$err_list = $this->User->validationErrors;
+						
+						foreach($err_list as $err)
+						{
+							$err_msg .= '<li>'.$i.'行目 : '.$err[0].'</li>';
+						}
+						
+						$is_error = true;
+					}
+				}
+				
+				//------------------------------//
+				//	エラー処理					//
+				//------------------------------//
+				if($is_error)
+				{
+					$ds->rollback();
+					$this->Flash->error(__('インポートに失敗しました'));
+				}
+				else
+				{
+					$ds->commit();
+					$this->Flash->success(__('インポートが完了しました'));
+					return $this->redirect(['action' => 'index', $course_id]);
+				}
+			}
+			catch(Exception $e)
+			{
+				$ds->rollback();
+				$this->Flash->error(__('インポートに失敗しました'));
+			}
+		}
+		
+		$this->set(compact('err_msg'));
+		$this->set('course_id', $course_id);
+	}
+
+	/**
+	 * 数字チェック
+	 */
+	private function test_num_check($val, $min_num, $max_num, $i, $item, $err_msg)
+	{
+		if($val != null) 
+		{
+			if(!(preg_match("/^[0-9]+$/", $val)))
+			{
+				$err_msg .= '<li>'.$i.'行目 : '.$item.'が数字ではありません。</li>';
+				return array(true, $err_msg);
+			}
+			if(($val < $min_num) || ($val > $max_num))
+			{
+				$err_msg .= '<li>'.$i.'行目 : '.$item.'が'.$min_num.'～'.$max_num.'ではありません。</li>';
+				return array(true, $err_msg);
+			}
+		} 
+		return array(false, $err_msg);
+	}
 }

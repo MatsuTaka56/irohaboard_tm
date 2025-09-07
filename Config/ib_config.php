@@ -192,3 +192,36 @@ $config['open_link_same_window'] = false;
 if (!defined('APP_NAME')) {
 	define('APP_NAME', 'iroha Board');
 }
+
+// コンテンツExport用ヘッダ
+$config['export_content_header'] = [
+	'title' => 'コンテンツ名',
+	'kind' => 'コンテンツ種別',
+	'file_name' => 'ファイル名',
+	'url' => 'URL',
+	'body' => 'ページソース',
+	'timelimit' => 'テスト制限時間',
+	'pass_rate' => '合格得点率',
+	'question_count' => '出題数',
+	'wrong_mode' => '不正解時の表示',
+	'status' => 'ステータス',
+	'comment' => '備考',
+	'opened' => 'Opened',
+	'created' => '作成日時',
+	'modified' => '更新日時',
+	'deleted' => '削除日時',
+];
+// コンテンツImport用ヘッダ
+$config['import_content_header'] = [
+	'コンテンツ名' => 'title',
+	'コンテンツ種別' => 'kind',
+	'ファイル名' => 'file_name',
+	'URL' => 'url',
+	'ページソース' => 'body',
+	'テスト制限時間' => 'timelimit',
+	'合格得点率' => 'pass_rate',
+	'出題数' => 'question_count',
+	'不正解時の表示' => 'wrong_mode',
+	'ステータス' => 'status',
+	'備考' => 'comment',
+];

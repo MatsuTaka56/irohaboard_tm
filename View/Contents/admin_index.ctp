@@ -44,6 +44,26 @@
 			opacity: 0.5
 		});
 	});
+
+	function confirmImport()
+	{
+		<?php	if(!empty($contents)){	?>
+			var result = window.confirm(
+				'すでにコンテンツが登録されています。\n'+
+				'これらのコンテンツを置き換えますか？\n'+
+				'置き換えの場合はすべてのコンテンツが削除されます。');
+        	if( result ) {
+        		console.log('OKがクリックされました');
+				location.href='<?= Router::url(['action' => 'import', $course['Course']['id']]) ?>';
+    		}
+    		else {
+        		console.log('キャンセルがクリックされました');
+    		}
+		<?php	}else{	?>
+				location.href='<?= Router::url(['action' => 'import', $course['Course']['id']]) ?>';
+		<?php	}	?>
+	}
+
 </script>
 <?php $this->end(); ?>
 
@@ -58,6 +78,8 @@
 	</div>
 	<div class="ib-page-title"><?= __('コンテンツ一覧'); ?></div>
 	<div class="buttons_container">
+		<button type="button" class="btn btn-primary btn-export" onclick="location.href='<?= Router::url(['action' => 'export', $course['Course']['id']]) ?>'">エクスポート</button>
+		<button type="button" class="btn btn-primary btn-import" onclick="confirmImport();">インポート</button>
 		<button type="button" class="btn btn-primary btn-add" onclick="location.href='<?= Router::url(['action' => 'add', $course['Course']['id']]) ?>'">+ 追加</button>
 	</div>
 	<div class="alert alert-warning"><?= __('ドラッグアンドドロップでコンテンツの並び順が変更できます。'); ?></div>
