@@ -14,6 +14,7 @@
 		// アップロードボタンクリック時の処理
 		$("#btnUpload").click(function() {
 			var content_kind = $('input[name="data[Content][kind]"]:checked').val();
+			var course_id = "<?= $course['Course']['id'] ?>";
 			
 			if(!content_kind)
 				return false;
@@ -26,7 +27,7 @@
 			$('#uploadDialog').modal('show');
 
 			// アップロード用のページを指定
-			$('#uploadFrame').attr('src', '<?= Router::url(['controller' => 'contents', 'action' => 'upload'])?>/' + content_kind);
+			$('#uploadFrame').attr('src', '<?= Router::url(['controller' => 'contents', 'action' => 'upload'])?>/' + content_kind + '/' + course_id);
 			return false;
 		});
 
@@ -106,12 +107,12 @@
 		if((content_kind == 'movie') && (!content_url.startsWith('http')))
 		{
 			file_name = content_url.split('/').pop();
-			content_url = '<?= Router::url(['controller' => 'contents', 'action' => 'preview_movie'], true)?>/' + file_name;
+			content_url = '<?= Router::url(['controller' => 'contents', 'action' => 'preview_movie'], true)?>/' + file_name + '/' + '<?=$course['Course']['id']?>';
 		}
 		else if((content_kind == 'pict') && (!content_url.startsWith('http')))
 		{
 			file_name = content_url.split('/').pop();
-			content_url = '<?= Router::url(['controller' => 'contents', 'action' => 'preview_pict'], true)?>/' + file_name;
+			content_url = '<?= Router::url(['controller' => 'contents', 'action' => 'preview_pict'], true)?>/' + file_name + '/' + '<?=$course['Course']['id']?>';
 		}
 
 		// プレビュー内容を保存
@@ -123,6 +124,7 @@
 				content_kind  : $('input[name="data[Content][kind]"]:checked').val(),
 				content_url   : content_url,
 				content_body  : $('#ContentBody').val(),
+				content_course_id : '<?=$course['Course']['id']?>',
 				_Token        : { key : content_key },
 			},
 			dataType: 'text',
@@ -176,13 +178,13 @@
 			echo $this->Form->input('title', ['label' => __('コンテンツ名')]);
 			echo $this->Form->inputRadio('kind', ['label' => __('コンテンツ種別'), 'separator'=>"<br>", 'options' => Configure::read('content_kind_comment')]);
 
-			// URL
+			// URL(画像、動画、配布資料時：ファイル名、URL時：URL)
 			echo '<div class="kind kind-movie kind-pict kind-url kind-file">';
 			echo $this->Form->input('url', ['label' => __('URL'), 'class' => 'form-control form-control-upload']);
 			echo '</div>';
 			
-			// 配布資料
-			echo '<div class="kind kind-file">';
+			// ファイル名表示 (画像、動画、配布資料時)
+			echo '<div class="kind kind-file kind-movie kind-pict">';
 			echo $this->Form->input('file_name', ['label' => __('ファイル名'), 'class' => 'form-control-filename', 'readonly' => 'readonly']);
 			echo '</div>';
 

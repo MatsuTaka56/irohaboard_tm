@@ -281,16 +281,19 @@ class ContentsController extends AppController
 	 * 動画ファイルのプレビュー
 	 * @param int $file_name ファイル名
 	 */
-	public function admin_preview_movie($file_name)
+	public function admin_preview_movie($file_name, $course_id)
 	{
 		// ファイルが指定されていない場合
 		if(!$file_name)
 		{
 			throw new NotFoundException(__('Invalid content'));
 		}
-		
+		// コースの情報を取得
+		$course = $this->fetchTable('Course')->get($course_id);
+		$course_name = $course['Course']['title'];
+
 		$safe_file_name = basename($file_name); // セキュリティ対策
-		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$safe_file_name;
+		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$course_name.DS.$safe_file_name;
 		
 		$upload_extensions = (array)Configure::read('upload_movie_extensions');
 		$extension = "." . pathinfo($safe_file_name, PATHINFO_EXTENSION);
@@ -302,10 +305,12 @@ class ContentsController extends AppController
 		}
 
 		// ファイル名が英数字、ピリオド、ハイフン、アンダースコア以外の場合
+		/*
 		if(!preg_match('/^[a-zA-Z0-9\.\-_]+$/', $safe_file_name))
 		{
 			throw new NotFoundException(__('Invalid content'));
 		}
+		*/
 
 		// ファイルが存在しない場合
 		if(!file_exists($file_path))
@@ -326,16 +331,19 @@ class ContentsController extends AppController
 	 * 画像ファイルのプレビュー
 	 * @param int $file_name ファイル名
 	 */
-	public function admin_preview_pict($file_name)
+	public function admin_preview_pict($file_name, $course_id)
 	{
 		// ファイルが指定されていない場合
 		if(!$file_name)
 		{
 			throw new NotFoundException(__('Invalid content'));
 		}
-		
+		// コースの情報を取得
+		$course = $this->fetchTable('Course')->get($course_id);
+		$course_name = $course['Course']['title'];
+
 		$safe_file_name = basename($file_name); // セキュリティ対策
-		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$safe_file_name;
+		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$course_name.DS.$safe_file_name;
 		
 		$upload_extensions = (array)Configure::read('upload_image_extensions');
 		$extension = "." . pathinfo($safe_file_name, PATHINFO_EXTENSION);
@@ -347,10 +355,12 @@ class ContentsController extends AppController
 		}
 
 		// ファイル名が英数字、ピリオド、ハイフン、アンダースコア以外の場合
+		/*
 		if(!preg_match('/^[a-zA-Z0-9\.\-_]+$/', $safe_file_name))
 		{
 			throw new NotFoundException(__('Invalid content'));
 		}
+		*/
 
 		// ファイルが存在しない場合
 		if(!file_exists($file_path))
@@ -382,8 +392,9 @@ class ContentsController extends AppController
 	 * ファイル（配布資料、動画、画像）のアップロード
 	 *
 	 * @param int $file_type ファイルの種類
+	 * @param int $course_id コースID（ファイルの格納用）
 	 */
-	public function admin_upload($file_type)
+	public function admin_upload($file_type, $course_id)
 	{
 		header('X-Frame-Options: SAMEORIGIN');
 		
@@ -438,63 +449,82 @@ class ContentsController extends AppController
 		{
 			if(Configure::read('demo_mode'))
 				return;
-			
-			// ファイルの読み込み
-			$fileUpload->readFile( $this->getData('Content')['file'] );
+			// コースの情報を取得
+			$course = $this->fetchTable('Course')->get($course_id);
+			$course_name = $course['Course']['title'];
 
-			$error_code = 0;
-			
-			// エラーチェック（互換性維持のためメソッドが存在する場合のみ）
-			if(method_exists($fileUpload, 'checkFile'))
-				$error_code = $fileUpload->checkFile();
-			
-			if($error_code > 0)
+			//filesフォルダの存在チェック
+			$dirPath = ROOT.DS.APP_DIR.DS.'files';
+			if(!is_dir($dirPath))
 			{
-				$mode = 'error';
-				
-				switch($error_code)
-				{
-					case 1001 : // 拡張子エラー
-						$this->Flash->error('アップロードされたファイルの形式は許可されていません');
-						break;
-					case 1002 : // ファイルサイズが0
-					case 1003 : // ファイルサイズオバー
-						$size = $this->getData('Content')['file']['size'];
-						$this->Flash->error('アップロードされたファイルのサイズ（'.$size.'）は許可されていません');
-						break;
-					default :
-						$this->Flash->error('アップロード中にエラーが発生しました ('.$error_code.')');
+				// なければ作成する
+				if(!mkdir($dirPath, 0755)){
+					//作成に失敗した時の処理
+					$this->Flash->error('保存先のフォルダ(files)の作成に失敗しました');
+					$mode = 'error';
+					return;
 				}
 			}
-			else
+			// アップロード用のコースフォルダの存在チェック
+			$dir_path = $dirPath.DS.$course_name;
+			if (!is_dir($dir_path))
 			{
-				$original_file_name = $this->getData('Content')['file']['name'];
-				$str = substr(str_shuffle('abcdefghijklmnopqrstuvwxyz'), 0, 4);
-
-				// ファイル名：YYYYMMDDHHNNSS形式＋ランダムな4桁の文字列＋"既存の拡張子"
-				$new_name = date('YmdHis').$str.$fileUpload->getExtension( $fileUpload->getFileName() );
-
-				$dirPath = ROOT.DS.APP_DIR.DS.'files';
-				
-				if(!is_dir($dirPath))
-				{
-					mkdir($dirPath, 0755);
+				// なければ作成する
+				if(!mkdir($dir_path, 0777)){
+					//作成に失敗した時の処理
+					$this->Flash->error('保存先のフォルダ(コースフォルダ)の作成に失敗しました');
+					$mode = 'error';
+					return;
 				}
+			}
+
+			$original_file_name = $this->getData('Content')['file']['name'];
+			$file_name = $dir_path.DS.$original_file_name;										//	ファイルのパス
+			$file_url = $original_file_name;
+			$mode = 'complete';
+			// アップロードファイルの存在をチェック
+			if (!file_exists($file_name)) {
+				// あれば、ファイルパスだけを取得して終了
+				// なければ、ファイルアップロード処理を実行
+				// ファイルの読み込み
+				$fileUpload->readFile( $this->getData('Content')['file'] );
+
+				$error_code = 0;
 				
-				$file_name = $dirPath.DS.$new_name;													//	ファイルのパス
-				$file_url = $new_name;																//	ファイル名
-
-				$result = $fileUpload->saveFile( $file_name );										//	ファイルの保存
-
-				if($result)																			//	結果によってメッセージを設定
+				// エラーチェック（互換性維持のためメソッドが存在する場合のみ）
+				if(method_exists($fileUpload, 'checkFile'))
+					$error_code = $fileUpload->checkFile();
+				
+				if($error_code > 0)
 				{
-					//$this->Flash->success('ファイルのアップロードが完了いたしました');
-					$mode = 'complete';
+					$mode = 'error';
+					
+					switch($error_code)
+					{
+						case 1001 : // 拡張子エラー
+							$this->Flash->error('アップロードされたファイルの形式は許可されていません');
+							break;
+						case 1002 : // ファイルサイズが0
+						case 1003 : // ファイルサイズオバー
+							$size = $this->getData('Content')['file']['size'];
+							$this->Flash->error('アップロードされたファイルのサイズ（'.$size.'）は許可されていません');
+							break;
+						default :
+							$this->Flash->error('アップロード中にエラーが発生しました ('.$error_code.')');
+					}
 				}
 				else
 				{
-					$this->Flash->error('ファイルのアップロードに失敗しました');
-					$mode = 'error';
+					$result = $fileUpload->saveFile( $file_name );		//	ファイルの保存
+					if($result)											//	結果によってメッセージを設定
+					{
+						$this->Flash->success('ファイルのアップロードが完了いたしました');
+					}
+					else
+					{
+						$this->Flash->error('ファイルのアップロードに失敗しました');
+						$mode = 'error';
+					}
 				}
 			}
 		}
@@ -671,7 +701,7 @@ class ContentsController extends AppController
 		
 		// ファイルのパスを取得（公開ディレクトリの外）
 		$safe_file_name = basename($content['Content']['url']); // セキュリティ対策
-		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$safe_file_name;
+		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$content['Course']['title'].DS.$safe_file_name;
 		
 		// ファイルが存在しない場合
 		if(!file_exists($file_path))
@@ -728,7 +758,7 @@ class ContentsController extends AppController
 		}
 
 		$safe_file_name = basename($content['Content']['url']); // セキュリティ対策
-		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$safe_file_name;
+		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$content['Course']['title'].DS.$safe_file_name;
 		
 		$upload_extensions = (array)Configure::read('upload_movie_extensions');
 		$extension = "." . pathinfo($safe_file_name, PATHINFO_EXTENSION);
@@ -789,7 +819,7 @@ class ContentsController extends AppController
 		}
 
 		$safe_file_name = basename($content['Content']['url']); // セキュリティ対策
-		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$safe_file_name;
+		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$content['Course']['title'].DS.$safe_file_name;
 		
 		$upload_extensions = (array)Configure::read('upload_image_extensions');
 		$extension = "." . pathinfo($safe_file_name, PATHINFO_EXTENSION);
@@ -831,10 +861,12 @@ class ContentsController extends AppController
 		$file_name = mb_convert_encoding($file_name, 'UTF-8', 'UTF-8');
 		
 		// 許可する文字パターンを定義
+		/*
 		if(!preg_match('/^[a-zA-Z0-9_\-\.]+$/', $file_name))
 		{
 			throw new NotFoundException(__('Invalid filename'));
 		}
+		*/
 		
 		// ファイル名の長さを制限
 		if(strlen($file_name) > 255)
