@@ -313,6 +313,7 @@ class RecordsController extends AppController
 	 * @param int $is_complete   完了フラグ
 	 * @param int $study_sec     学習時間
 	 * @param int $understanding 理解度
+	 * @param int $next_page     次のコンテンツID
 	 */
 	public function add($content_id)
 	{
@@ -361,8 +362,15 @@ class RecordsController extends AppController
 		// 学習履歴を保存
 		if($this->Record->save($record_data))
 		{
-			$this->Flash->success(__('学習履歴を保存しました'));
-			return $this->redirect(['controller' => 'contents', 'action' => 'index', $content['Course']['id']]);
+			if($data['next_page'] == 0)
+			{
+				$this->Flash->success(__('学習履歴を保存しました'));
+				return $this->redirect(['controller' => 'contents', 'action' => 'index', $content['Course']['id']]);
+			}
+			else
+			{
+				return $this->redirect(['controller' => 'contents',	'action' => 'view',	$data['next_page']]);
+			}
 		}
 		else
 		{

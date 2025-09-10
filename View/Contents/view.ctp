@@ -94,7 +94,7 @@
 	?>
 	<div class="content-foot">
 		<div class="content-menu">
-			<div class="select-message text-success"><?= __('理解度を選択して終了して下さい。');?></div>
+			<div class="select-message text-success"><?= __('理解度を選択して下さい。');?></div>
 			<span class='understanding-pc'></span>
 			<span class='understanding-spn'></span>
 			<button type="button" class="btn btn-danger" onclick="finish(0);"><?= __('中断');?></button>
@@ -112,5 +112,12 @@
 		</div>
 	</div>
 </div>
+<script>
+	// 学習終了
+	function finish0(val)
+	{
+		finish(val, <?= $next_page?>);
+	}
+</script>
 </body>
 </html>
