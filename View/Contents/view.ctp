@@ -45,24 +45,24 @@
 			$body = '<iframe id="contentFrame" width="100%" height="100%" scrolling="yes" src="'.h($content['Content']['url']).'"></iframe>';
 			break;
 		case 'pict': // 画像コンテンツ
-			$url = h($content['Content']['url']);
+			$file_name = h($content['Content']['file_name']);
 
-			if(strpos($url, 'http') === false)
+			if(strpos($file_name, 'http') === false)
 			{
-				$url = Router::url(['controller' => 'contents', 'action' => 'file_pict', $content['Content']['id']]);
+				$file_name = Router::url(['controller' => 'contents', 'action' => 'file_pict', $content['Content']['id']]);
 			}
 
-			$body = '<p><img src="'.$url.'"  data-filename="pict" id="imgsrc" style="width: 100%;"></p>';
+			$body = '<p><img src="'.$file_name.'"  data-filename="pict" id="imgsrc" style="width: 100%;"></p>';
 			break;
 		case 'movie': // 動画コンテンツ
-			$url = h($content['Content']['url']);
+			$file_name = h($content['Content']['file_name']);
 
-			if(strpos($url, 'http') === false)
+			if(strpos($file_name, 'http') === false)
 			{
-				$url = Router::url(['controller' => 'contents', 'action' => 'file_movie', $content['Content']['id']]);
+				$file_name = Router::url(['controller' => 'contents', 'action' => 'file_movie', $content['Content']['id']]);
 			}
 
-			$body = '<video src="'.$url.'" controls width="100%" oncontextmenu="return false;"></video>';
+			$body = '<video src="'.$file_name.'" controls width="100%" oncontextmenu="return false;"></video>';
 			break;
 		case 'text': // テキスト型コンテンツ
 			$body = h($content['Content']['body']);

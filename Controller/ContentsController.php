@@ -264,6 +264,7 @@ class ContentsController extends AppController
 					'title'  => $this->getData('content_title'),
 					'kind'	 => $this->getData('content_kind'),
 					'url'	 => $this->getData('content_url'),
+					'file_name'	 => $this->getData('content_file_name'),
 					'body'	 => $this->getData('content_body')
 				],
 				'Course' => [
@@ -700,7 +701,7 @@ class ContentsController extends AppController
 		}
 		
 		// ファイルのパスを取得（公開ディレクトリの外）
-		$safe_file_name = basename($content['Content']['url']); // セキュリティ対策
+		$safe_file_name = basename($content['Content']['file_name']); // セキュリティ対策
 		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$content['Course']['title'].DS.$safe_file_name;
 		
 		// ファイルが存在しない場合
@@ -757,7 +758,7 @@ class ContentsController extends AppController
 			throw new NotFoundException(__('Invalid content'));
 		}
 
-		$safe_file_name = basename($content['Content']['url']); // セキュリティ対策
+		$safe_file_name = basename($content['Content']['file_name']); // セキュリティ対策
 		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$content['Course']['title'].DS.$safe_file_name;
 		
 		$upload_extensions = (array)Configure::read('upload_movie_extensions');
@@ -818,7 +819,7 @@ class ContentsController extends AppController
 			throw new NotFoundException(__('Invalid content'));
 		}
 
-		$safe_file_name = basename($content['Content']['url']); // セキュリティ対策
+		$safe_file_name = basename($content['Content']['file_name']); // セキュリティ対策
 		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$content['Course']['title'].DS.$safe_file_name;
 		
 		$upload_extensions = (array)Configure::read('upload_image_extensions');
@@ -1156,7 +1157,7 @@ class ContentsController extends AppController
 						}
 					}
 						
-					if(in_array($data['Content']['kind'],['url', 'movie', 'file', 'pict']))
+					if(in_array($data['Content']['kind'],['url']))
 					{
 						if($row[$col_list['url']] == null) 
 						{

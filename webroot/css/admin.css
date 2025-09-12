@@ -105,13 +105,15 @@
 {
 	display			: inline-block !important;
 	margin-right	: 10px !important;
-	widht			: 85%;
+	width			: 85%;
 }
 
 .admin-contents-edit .form-control-filename
 {
-	border			: none !important;
-	box-shadow		: none !important;
+	font-size		: 12px;
+	font-weight		: normal;
+	height			: 30px;
+	padding			: 4px;
 }
 
 .admin-contents-edit label span,
