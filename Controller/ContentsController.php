@@ -1102,23 +1102,29 @@ class ContentsController extends AppController
 						continue;
 					
 					$is_new = false;
+					$data = [];
+					$data['Content'] = [];
+					$this->Content->create();
 					
 					//------------------------------//
-					//	コンテンツ情報の作成			//
+					//	コンテンツ情報の作成		  //
 					//------------------------------//
-					$data = $this->Content->find()
+					//既存コンテンツの確認
+					$ex_data = $this->Content->find()
 						->where(['Content.course_id' => $course_id])
 						->where(['Content.deleted !=' => null])
 						->first();
 					
-					// 指定したコースIDおよび削除日付有のコンテンツが存在しない場合、新規追加とする
-					if(!$data)
+					// 指定したコースIDおよび削除日付有の既存コンテンツが存在しない場合、新規追加とする
+					if(!$ex_data)
 					{
-						$data = [];
-						$data['Content'] = [];
-						$this->Content->create();
 						$data['Content']['created'] = date('Y-m-d H:i:s');
 						$is_new = true;
+					}
+					else
+					{
+						$data['Content']['id'] = $ex_data['Content']['id'];
+						$data['Content']['created'] = $ex_data['Content']['created'];
 					}
 					//importデータの指定の有無を確認しながらコンテンツデータを作成する
 					//$data['Content']['id'] = $row[COL_id];
@@ -1127,7 +1133,7 @@ class ContentsController extends AppController
 
 					$data['Content']['sort_no'] = $i - 1;
 
-					if($row[$col_list['title']] == null) 
+					if($row[$col_list['title']] === null) 
 					{
 						$is_error = true;
 						$err_msg .= '<li>'.$i.'行目 : コンテンツ名が指定されていません。</li>';
@@ -1135,7 +1141,7 @@ class ContentsController extends AppController
 					}
 					$data['Content']['title'] = $row[$col_list['title']];
 
-					if(Utils::getKeyByValue('content_kind', $row[$col_list['kind']]) == null) 
+					if(Utils::getKeyByValue('content_kind', $row[$col_list['kind']]) === null) 
 					{
 						$is_error = true;
 						$err_msg .= '<li>'.$i.'行目 : コンテンツ種別が指定されていません。</li>';
@@ -1143,9 +1149,10 @@ class ContentsController extends AppController
 					}
 					$data['Content']['kind'] = Utils::getKeyByValue('content_kind', $row[$col_list['kind']]);
 
+					$data['Content']['file_name'] = "";
 					if(in_array($data['Content']['kind'],['movie', 'file', 'pict']))
 					{
-						if($row[$col_list['file_name']] == null) 
+						if($row[$col_list['file_name']] === null) 
 						{
 							$is_error = true;
 							$err_msg .= '<li>'.$i.'行目 : ファイル名が指定されていません('.$data['Content']['kind'].')。</li>';
@@ -1157,9 +1164,10 @@ class ContentsController extends AppController
 						}
 					}
 						
+					$data['Content']['url'] = "";
 					if(in_array($data['Content']['kind'],['url']))
 					{
-						if($row[$col_list['url']] == null) 
+						if($row[$col_list['url']] === null) 
 						{
 							$is_error = true;
 							$err_msg .= '<li>'.$i.'行目 : URLが指定されていません('.$data['Content']['kind'].')。</li>';
@@ -1173,7 +1181,7 @@ class ContentsController extends AppController
 						
 					if(in_array($data['Content']['kind'],['html']))
 					{
-						if($row[$col_list['body']] == null) 
+						if($row[$col_list['body']] === null) 
 						{
 							$data['Content']['body'] = '<p><br></p>';
 						}
@@ -1183,6 +1191,10 @@ class ContentsController extends AppController
 						}
 					}
 
+					$data['Content']['timelimit'] = "";
+					$data['Content']['pass_rate'] = "";
+					$data['Content']['question_count'] = "";
+					$data['Content']['wrong_mode'] = "";
 					if($data['Content']['kind'] == 'test')
 					{
 						list($is_error, $err_msg) = $this -> test_num_check($row[$col_list['timelimit']], 1, 100, $i, 'テスト制限時間', $err_msg);
@@ -1209,7 +1221,7 @@ class ContentsController extends AppController
 						}
 					}
 
-					if(Utils::getKeyByValue('content_status', $row[$col_list['status']]) == null) 
+					if(Utils::getKeyByValue('content_status', $row[$col_list['status']]) === null) 
 					{
 						$data['Content']['status'] = 1;
 					}
