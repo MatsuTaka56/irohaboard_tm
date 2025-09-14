@@ -41,6 +41,11 @@ $config['content_category']	= [
 //	'enquete'	=> 'アンケート',
 ];
 
+$config['content_mode']	= [
+	'0'		=> '学習',
+	'1'		=> '仕切り',
+];
+
 $config['question_type']	= [
 	'single'	=> '選択形式',
 	'text'		=> '記述式',
@@ -204,6 +209,7 @@ $config['export_content_header'] = [
 	'pass_rate' => '合格得点率',
 	'question_count' => '出題数',
 	'wrong_mode' => '不正解時の表示',
+	'mode' => 'コンテンツモード',
 	'status' => 'ステータス',
 	'comment' => '備考',
 	'opened' => 'Opened',
@@ -222,6 +228,7 @@ $config['import_content_header'] = [
 	'合格得点率' => 'pass_rate',
 	'出題数' => 'question_count',
 	'不正解時の表示' => 'wrong_mode',
+	'コンテンツモード' => 'mode',
 	'ステータス' => 'status',
 	'備考' => 'comment',
 ];

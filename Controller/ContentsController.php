@@ -123,6 +123,9 @@ class ContentsController extends AppController
 			$content['Content']['next_page'] = $next_content['Content']['id'];
 		}
 
+		$content['Content']['mode'] = $content['Content']['wrong_mode'];
+		if($content['Content']['mode'] === null) $content['Content']['mode']=0;
+
 		$this->set(compact('content'));
 	}
 
@@ -190,6 +193,11 @@ class ContentsController extends AppController
 				$this->request->data['Content']['sort_no']	 = $this->Content->getNextSortNo($course_id);
 			}
 			
+			if(in_array($this->request->data['Content']['kind'],['html', 'url', 'movie', 'pict']))
+			{
+				$this->request->data['Content']['wrong_mode'] = $this->request->data['Content']['mode'];
+			}
+
 			if($this->Content->save($this->request->data))
 			{
 				$this->Flash->success(__('コンテンツが保存されました'));
@@ -203,6 +211,7 @@ class ContentsController extends AppController
 		else
 		{
 			$this->request->data = $this->Content->get($content_id);
+			$this->request->data['Content']['mode'] = $this->request->data['Content']['wrong_mode'];
 		}
 		
 		// コース情報を取得
@@ -265,7 +274,8 @@ class ContentsController extends AppController
 					'kind'	 => $this->getData('content_kind'),
 					'url'	 => $this->getData('content_url'),
 					'file_name'	 => $this->getData('content_file_name'),
-					'body'	 => $this->getData('content_body')
+					'body'	 => $this->getData('content_body'),
+					'mode'	 => $this->getData('content_mode'),
 				],
 				'Course' => [
 					'id'	 => 0,
@@ -989,6 +999,26 @@ class ContentsController extends AppController
 						case 'status':
 							$line[] = Configure::read('content_status.'.$row['Content']['status']);
 							break;
+						case 'wrong_mode':
+							if($row['Content']['kind'] != 'test')
+							{
+								$line[] = "";
+							}
+							else
+							{
+								$line[] = $row['Content'][$key];
+							}
+							break;
+						case 'mode':
+							if(in_array($row['Content']['kind'],['html', 'url', 'movie', 'pict']))
+							{
+								$line[] = Configure::read('content_mode.'.$row['Content']['wrong_mode']);
+							}
+							else
+							{
+								$line[] = "";
+							}
+							break;
 						default:
 							$line[] = $row['Content'][$key];
 					}
@@ -1218,6 +1248,14 @@ class ContentsController extends AppController
 						else
 						{
 							$data['Content']['wrong_mode'] = $row[$col_list['wrong_mode']];
+						}
+					}
+
+					if(in_array($data['Content']['kind'],['html', 'url', 'movie', 'pict']))
+					{
+						if($row[$col_list['mode']] != null) 
+						{
+							$data['Content']['wrong_mode'] = Utils::getKeyByValue('content_mode', $row[$col_list['mode']]);
 						}
 					}
 

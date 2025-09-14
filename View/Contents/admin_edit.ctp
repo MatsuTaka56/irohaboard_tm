@@ -127,6 +127,7 @@
 				content_file_name   : content_file_name,
 				content_body  : $('#ContentBody').val(),
 				content_course_id : '<?=$course['Course']['id']?>',
+				content_mode  : $('input[name="data[Content][mode]"]:checked').val(),
 				_Token        : { key : content_key },
 			},
 			dataType: 'text',
@@ -190,6 +191,11 @@
 			//echo '<div class="kind kind-file kind-movie kind-pict">';
 			echo '<div class="kind kind-file kind-movie kind-pict">';
 			echo $this->Form->input('file_name', ['label' => __('ファイル名'), 'class' => 'form-control-filename form-control-upload']);
+			echo '</div>';
+
+			// 学習・仕切りモードの区別 (リッチテキスト、画像、動画、URL時)
+			echo '<div class="kind kind-text kind-html kind-movie kind-url kind-pict">';
+			echo $this->Form->inputRadio('mode', ['label' => __('コンテンツモード'), 'options' => Configure::read('content_mode'), 'default' => 0]);
 			echo '</div>';
 
 			// リッチテキスト
