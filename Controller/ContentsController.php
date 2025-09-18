@@ -938,13 +938,20 @@ class ContentsController extends AppController
 		$this->autoRender = false;
 		Configure::write('debug', 0);
 
-		//Content-Typeを指定
-		$this->response->type('csv');
-		
-		header('Content-Type: text/csv');
-		header('Content-Disposition: attachment; filename="'.$course_name.'_'.date('Ymd').'.csv"');
-		
-		$fp = fopen('php://output','w');
+		//ファイルエクスポート用のzipオブジェクトを定義
+		$zip_obj = new ZipArchive;
+		$tmp_dir = ROOT.DS.APP_DIR.DS.'files'.'/tmp';
+		$files_name = $course_name.'_files_'.date('Ymd').'.zip';
+		$files_cnt = 0;
+		$csv_name = $course_name.'_csv_'.date('Ymd').'.csv';
+		$exp_name = $course_name.'_exp_'.date('Ymd').'.zip';
+
+		if(!is_dir($tmp_dir))
+		{
+			mkdir($tmp_dir, 0755);
+		}
+
+		$fp = fopen($tmp_dir.DS.$csv_name,'w');
 		
 		$header_list = Configure::read('export_content_header');
 		//------------------------------//
@@ -1027,10 +1034,63 @@ class ContentsController extends AppController
 				// CSV出力
 				mb_convert_variables('SJIS-win', 'UTF-8', $line);
 				fputcsv($fp, $line);
+
+				// 画像、動画、ファイルの場合、ファイルを圧縮
+				if(in_array($row['Content']['kind'],['file', 'movie', 'pict']))
+				{
+					if($files_cnt == 0)
+					{
+						$result = $zip_obj->open($tmp_dir.DS.$files_name, ZIPARCHIVE::CREATE | ZIPARCHIVE::OVERWRITE);
+						if(!$result){
+							$this->Flash->error(__('ZIPファイルがオープンできません'));
+							$this->set(compact('err_msg'));
+							return;
+						}
+					}
+					$zip_obj->addFile(ROOT.DS.APP_DIR.DS.'files'.DS.$course_name.DS.$row['Content']['file_name'],
+										$row['Content']['file_name']);
+					$files_cnt ++;
+				}
 			}
 		}
 		
 		fclose($fp);
+		if($files_cnt != 0)
+		{
+			$zip_obj->close();
+		}
+
+		// 全体をzipでまとめて、ダウンロードする
+		$result = $zip_obj->open($tmp_dir.DS.$exp_name, ZIPARCHIVE::CREATE | ZIPARCHIVE::OVERWRITE);
+		if(!$result){
+			$this->Flash->error(__('ZIPファイルがオープンできません'));
+			$this->set(compact('err_msg'));
+			return;
+		}
+		
+		$zip_obj->addFile($tmp_dir.DS.$csv_name, $csv_name);
+		if($files_cnt != 0)
+		{
+			$zip_obj->addFile($tmp_dir.DS.$files_name, $files_name);
+		}
+		$zip_obj->close();
+		//ダウンロード
+		header('Content-Type: application/force-download;');
+		header('Content-Length: '.filesize($tmp_dir.DS.$exp_name));
+		header('Content-Disposition: attachment; filename="'.$exp_name.'"');
+		$result = readfile($tmp_dir.DS.$exp_name);
+		if($result == false)
+		{
+			$this->Flash->error(__('ZIPファイルが読み込みできません'));
+			$this->set(compact('err_msg'));
+			return;
+		}
+
+		//tmpフォルダ内のcsv、zipファイルを削除
+		unlink($tmp_dir.DS.$csv_name);
+		unlink($tmp_dir.DS.$files_name);
+		unlink($tmp_dir.DS.$exp_name);
+
 	}
 
 	/**
