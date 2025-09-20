@@ -942,7 +942,9 @@ class ContentsController extends AppController
 		$zip_obj = new ZipArchive;
 		$tmp_dir = ROOT.DS.APP_DIR.DS.'files'.'/tmp';
 		$files_name = $course_name.'_files_'.date('Ymd').'.zip';
-		$files_cnt = 0;
+		$files = array();
+		$images_name = $course_name.'_images_'.date('Ymd').'.zip';
+		$images = array();
 		$csv_name = $course_name.'_csv_'.date('Ymd').'.csv';
 		$exp_name = $course_name.'_exp_'.date('Ymd').'.zip';
 
@@ -1035,28 +1037,55 @@ class ContentsController extends AppController
 				mb_convert_variables('SJIS-win', 'UTF-8', $line);
 				fputcsv($fp, $line);
 
-				// 画像、動画、ファイルの場合、ファイルを圧縮
+				// 画像、動画、ファイルの場合、ファイル名を抽出
 				if(in_array($row['Content']['kind'],['file', 'movie', 'pict']))
 				{
-					if($files_cnt == 0)
+					array_push($files, $row['Content']['file_name']);
+				}
+				// リッチテキストの場合、imageファイル名を抽出
+				else if($row['Content']['kind'] == 'html')
+				{
+					if(preg_match_all('/file_image\/(.*?)\"/', $row['Content']['body'], $rich_images) > 0)
 					{
-						$result = $zip_obj->open($tmp_dir.DS.$files_name, ZIPARCHIVE::CREATE | ZIPARCHIVE::OVERWRITE);
-						if(!$result){
-							$this->Flash->error(__('ZIPファイルがオープンできません'));
-							$this->set(compact('err_msg'));
-							return;
+						foreach($rich_images[1] as $image)
+						{
+							array_push($images, $image);
 						}
 					}
-					$zip_obj->addFile(ROOT.DS.APP_DIR.DS.'files'.DS.$course_name.DS.$row['Content']['file_name'],
-										$row['Content']['file_name']);
-					$files_cnt ++;
 				}
 			}
 		}
 		
 		fclose($fp);
-		if($files_cnt != 0)
+		
+		// 画像、動画のファイルがあれば、zipにまとめる
+		if(count($files) != 0)
 		{
+			$result = $zip_obj->open($tmp_dir.DS.$files_name, ZIPARCHIVE::CREATE | ZIPARCHIVE::OVERWRITE);
+			if(!$result){
+				$this->Flash->error(__('ZIPファイルがオープンできません'));
+				$this->set(compact('err_msg'));
+				return;
+			}
+			foreach($files as $file)
+			{
+				$zip_obj->addFile(ROOT.DS.APP_DIR.DS.'files'.DS.$course_name.DS.$file, $file);
+			}
+			$zip_obj->close();
+		}
+		// リッチテキストのimageファイルがあれば,zipにまとめる
+		if(count($images) != 0)
+		{
+			$result = $zip_obj->open($tmp_dir.DS.$images_name, ZIPARCHIVE::CREATE | ZIPARCHIVE::OVERWRITE);
+			if(!$result){
+				$this->Flash->error(__('ZIPファイルがオープンできません'));
+				$this->set(compact('err_msg'));
+				return;
+			}
+			foreach($images as $image)
+			{
+				$zip_obj->addFile(ROOT.DS.APP_DIR.DS.'files'.DS.$image, $image);
+			}
 			$zip_obj->close();
 		}
 
@@ -1069,9 +1098,13 @@ class ContentsController extends AppController
 		}
 		
 		$zip_obj->addFile($tmp_dir.DS.$csv_name, $csv_name);
-		if($files_cnt != 0)
+		if(count($files) != 0)
 		{
 			$zip_obj->addFile($tmp_dir.DS.$files_name, $files_name);
+		}
+		if(count($images) != 0)
+		{
+			$zip_obj->addFile($tmp_dir.DS.$images_name, $images_name);
 		}
 		$zip_obj->close();
 		//ダウンロード
@@ -1089,6 +1122,7 @@ class ContentsController extends AppController
 		//tmpフォルダ内のcsv、zipファイルを削除
 		unlink($tmp_dir.DS.$csv_name);
 		unlink($tmp_dir.DS.$files_name);
+		unlink($tmp_dir.DS.$images_name);
 		unlink($tmp_dir.DS.$exp_name);
 
 	}
