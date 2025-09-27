@@ -1136,9 +1136,12 @@ class ContentsController extends AppController
 			return;
 
 		$err_msg = '';
+		$add_files = [];
+		$add_image_files = [];
 		
 		if($this->request->is(['post', 'put']))
 		{
+		//========== CSVファイル ====================================//
 			//------------------------------//
 			//	列番号の定義				//
 			//------------------------------//
@@ -1285,6 +1288,7 @@ class ContentsController extends AppController
 						else
 						{
 							$data['Content']['file_name'] = $row[$col_list['file_name']];
+							array_push($add_files, $data['Content']['file_name']);
 						}
 					}
 						
@@ -1312,6 +1316,16 @@ class ContentsController extends AppController
 						else
 						{
 							$data['Content']['body'] = $row[$col_list['body']];
+							if(strstr($data['Content']['body'], 'file_image'))
+							{
+								if(preg_match_all('/file_image\/(.*?)\"/', $data['Content']['body'], $rich_images) > 0)
+								{
+									foreach($rich_images[1] as $image)
+									{
+										array_push($add_image_files, $image);
+									}
+								}
+							}
 						}
 					}
 
@@ -1382,6 +1396,76 @@ class ContentsController extends AppController
 						}
 						
 						$is_error = true;
+					}
+				}
+
+				//========== ZIPファイル ====================================//
+				if((count($add_files) >0) && !$is_error)
+				{
+					// 画像、動画、配布資料、イメージファイルの指定がある。
+					//------------------------------//
+					//	ZIPファイルの読み込み		 //
+					//------------------------------//
+					
+					$zipfile = $this->request->data['Content']['zipfile'];
+					
+					// インポートファイル(ZIPファイル)が指定されていれば、
+					// 内部の必要ファイルを抽出=>保存する
+					if($zipfile['error'] == 0)
+					{	// 指定あり
+						// コース情報の取得
+						$course = $this->fetchTable('Course')->get($course_id);
+						$course_name = $course['Course']['title'];
+						// 保存ディレクトリの設定
+						$course_dir = ROOT.DS.APP_DIR.DS.'files'.DS.$course_name.DS;
+						$app_files_dir = ROOT.DS.APP_DIR.DS.'files'.DS;
+						if (!file_exists($course_dir))
+						{
+							// 存在しなければ作成
+							mkdir($course_dir, 0777, true);
+						}
+
+						// ZIPファイルの読み込み=>ファイル名抽出=>$add_filesに含まれるファイルの場合保存
+						$zip = new ZipArchive();
+						if ($zip->open($zipfile['tmp_name']) === TRUE)
+						{
+							// ZIP内のファイルを走査
+							for ($i = 0; $i < $zip->numFiles; $i++)
+							{
+								$entry = $zip->getNameIndex($i);
+
+								// ディレクトリはスキップ
+								if (substr($entry, -1) === '/')
+								{
+									continue;
+								}
+
+								// ファイル名のみ取り出して判定
+								$basename = basename($entry);
+
+								if (in_array($basename, $add_files, true))
+								{
+									// 必要な動画、画像、配布資料ファイルだけ保存
+									$content = $zip->getFromIndex($i);
+									file_put_contents($course_dir.$basename, $content);
+								}
+								elseif (in_array($basename, $add_image_files, true))
+								{
+									// 必要なイメージファイルだけ保存
+									$content = $zip->getFromIndex($i);
+									file_put_contents($app_files_dir.$basename, $content);
+								}
+							}
+
+							$zip->close();
+							// ZIPファイルを削除
+							unlink($zipfile['tmp_name']);
+						}
+					}
+					else
+					{
+						$is_error = true;
+						$err_msg .= '<li>画像、動画、配布資料、イメージ用のZIPファイルが読むことができません。</li>';
 					}
 				}
 				

@@ -41,13 +41,13 @@
 			<li>コンテンツモード：コンテンツ種別が画像、動画、URL、リッチテキストの場合、「学習」/「仕切り」を指定します。（規定値：「学習」）</li>
 			<li>ステータス：「公開」/「非公開」を指定します。[非公開]と設定した場合、管理者権限でログインした場合のみ表示されます。（規定値：「公開」）</li>
 			<li>備考：--------</li>
-			<li>※指定のコンテンツ種別に関係しない項目は無視します。上記項目以降のカラムは無視します。
+			<li>※指定のコンテンツ種別に関係しない項目は無視します。上記項目以降のカラムは無視します。</li>
+			<br>
 			<?php
-				// PHP8.1対応
 				$this->Form->unlockField('csvfile.full_path');
-				
 				echo $this->Form->create('Content',['type'=>'file']);
-				echo $this->Form->input('csvfile',['label'=>'','type'=>'file']);
+				echo $this->Form->input('csvfile',['label'=>'CSVファイル','type'=>'file']);
+				echo $this->Form->input('zipfile',['label'=>'ZIPファイル','type'=>'file']);
 				echo $this->Form->submit('インポート', Configure::read('form_submit_defaults'));
 				echo $this->Form->end();
 			?>
