@@ -73,7 +73,7 @@
 				break;
 			case 'html': // リッチテキスト
 				// リッチテキストエディタを起動
-				CommonUtil.setRichTextEditor('#ContentBody', <?= Configure::read('upload_image_maxsize') ?>, '<?= $this->webroot ?>');
+				CommonUtil.setRichTextEditor('#ContentBody', <?= Configure::read('upload_image_maxsize') ?>, '<?= $this->webroot ?>', '<?=$course['Course']['id']?>');
 				$('#btnUpload').hide();
 				$('#btnPreview').show();
 				break;

@@ -477,11 +477,11 @@ class ContentsController extends AppController
 				}
 			}
 			// アップロード用のコースフォルダの存在チェック
-			$dir_path = $dirPath.DS.$course_name;
-			if (!is_dir($dir_path))
+			$dirPath = $dirPath.DS.$course_name;
+			if (!is_dir($dirPath))
 			{
 				// なければ作成する
-				if(!mkdir($dir_path, 0777)){
+				if(!mkdir($dirPath, 0777)){
 					//作成に失敗した時の処理
 					$this->Flash->error('保存先のフォルダ(コースフォルダ)の作成に失敗しました');
 					$mode = 'error';
@@ -489,8 +489,10 @@ class ContentsController extends AppController
 				}
 			}
 
-			$original_file_name = $this->getData('Content')['file']['name'];
-			$file_name = $dir_path.DS.$original_file_name;										//	ファイルのパス
+			preg_match('/^(.+)\.(.+)$/', $this->getData('Content')['file']['name'], $split_file_name);
+			$original_file_name = $split_file_name[1].'.'.strtolower($split_file_name[2]);
+
+			$file_name = $dirPath.DS.$original_file_name;										//	ファイルのパス
 			$file_url = $original_file_name;
 			$mode = 'complete';
 			// アップロードファイルの存在をチェック
@@ -551,7 +553,7 @@ class ContentsController extends AppController
 	 *
 	 * @return string アップロードした画像のURL(JSON形式)
 	 */
-	public function admin_upload_image()
+	public function admin_upload_image($course_id=0)
 	{
 		$this->autoRender = FALSE;
 		
@@ -567,21 +569,41 @@ class ContentsController extends AppController
 			$fileUpload->setExtension($upload_extensions);
 			$fileUpload->setMaxSize($upload_maxsize);
 			$fileUpload->readFile( $this->getParam('form')['file'] );								//	ファイルの読み込み
-			
-			$str = substr(str_shuffle('abcdefghijklmnopqrstuvwxyz'), 0, 4);
-			
-			// ファイル名：YYYYMMDDHHNNSS形式＋ランダムな4桁の文字列＋"既存の拡張子"
-			$new_name = date('YmdHis').$str.$fileUpload->getExtension( $fileUpload->getFileName() );
+						
+			// ファイル名：オリジナルファイル名を設定
+			preg_match('/^(.+)\.(.+)$/', $fileUpload->getFileName(), $org_file_name);
+			$new_name = $org_file_name[1].'.'.strtolower($org_file_name[2]);
 
 			$dirPath = ROOT.DS.APP_DIR.DS.'files';
 			
 			if(!is_dir($dirPath))
 			{
-				mkdir($dirPath, 0755);
+				if(!mkdir($dirPath, 0755)){
+					//作成に失敗した時の処理
+					$this->Flash->error('保存先のフォルダ(files)の作成に失敗しました');
+					$mode = 'error';
+				}
 			}
-			
+			if($course_id != 0)
+			{
+				// コースの情報を取得
+				$course = $this->fetchTable('Course')->get($course_id);
+				$course_name = $course['Course']['title'];
+				// アップロード用のコースフォルダの存在チェック
+				$dirPath = $dirPath.DS.$course_name;
+				if (!is_dir($dirPath))
+				{
+					// なければ作成する
+					if(!mkdir($dirPath, 0777)){
+						//作成に失敗した時の処理
+						$this->Flash->error('保存先のフォルダ(コースフォルダ)の作成に失敗しました');
+						$mode = 'error';
+					}
+				}
+			}
+
 			$file_name = $dirPath.DS.$new_name;														//	ファイルのパス
-			$file_url = $this->webroot.'contents/file_image/'.$new_name;							//	ファイル名
+			$file_url = $this->webroot.'contents/file_image/'.$new_name.'/'.$course_id;							//	ファイル名
 
 			$result = $fileUpload->saveFile( $file_name );											//	ファイルの保存
 			
@@ -860,7 +882,7 @@ class ContentsController extends AppController
 	 * 画像ファイルの表示
 	 * @param int $file_name ファイル名
 	 */
-	public function file_image($file_name)
+	public function file_image($file_name, $course_id=0)
 	{
 		// ファイルが指定されていない場合
 		if(!$file_name)
@@ -901,8 +923,17 @@ class ContentsController extends AppController
 			throw new NotFoundException(__('Invalid content'));
 		}
 		
+		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS;
+		if($course_id !=0)
+		{
+			// コースの情報を取得
+			$course = $this->fetchTable('Course')->get($course_id);
+			$course_name = $course['Course']['title'];
+			$file_path = $file_path.$course_name.DS;
+		}
+
 		$safe_file_name = basename($file_name); // セキュリティ対策
-		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$safe_file_name;
+		$file_path = $file_path.$safe_file_name;
 		
 		// ファイル名がディレクトリを示している場合
 		if(is_dir($file_path))
@@ -943,8 +974,6 @@ class ContentsController extends AppController
 		$tmp_dir = ROOT.DS.APP_DIR.DS.'files'.'/tmp';
 		$files_name = $course_name.'_files_'.date('Ymd').'.zip';
 		$files = array();
-		$images_name = $course_name.'_images_'.date('Ymd').'.zip';
-		$images = array();
 		$csv_name = $course_name.'_csv_'.date('Ymd').'.csv';
 		$exp_name = $course_name.'_exp_'.date('Ymd').'.zip';
 
@@ -1045,11 +1074,11 @@ class ContentsController extends AppController
 				// リッチテキストの場合、imageファイル名を抽出
 				else if($row['Content']['kind'] == 'html')
 				{
-					if(preg_match_all('/file_image\/(.*?)\"/', $row['Content']['body'], $rich_images) > 0)
+					if(preg_match_all('/file_image\/(.+?)\/\d+\"/', $row['Content']['body'], $rich_images) > 0)
 					{
 						foreach($rich_images[1] as $image)
 						{
-							array_push($images, $image);
+							array_push($files, $image);
 						}
 					}
 				}
@@ -1058,7 +1087,7 @@ class ContentsController extends AppController
 		
 		fclose($fp);
 		
-		// 画像、動画のファイルがあれば、zipにまとめる
+		// 画像、動画、リッチテキストのimageファイルがあれば、zipにまとめる
 		if(count($files) != 0)
 		{
 			$result = $zip_obj->open($tmp_dir.DS.$files_name, ZIPARCHIVE::CREATE | ZIPARCHIVE::OVERWRITE);
@@ -1070,21 +1099,6 @@ class ContentsController extends AppController
 			foreach($files as $file)
 			{
 				$zip_obj->addFile(ROOT.DS.APP_DIR.DS.'files'.DS.$course_name.DS.$file, $file);
-			}
-			$zip_obj->close();
-		}
-		// リッチテキストのimageファイルがあれば,zipにまとめる
-		if(count($images) != 0)
-		{
-			$result = $zip_obj->open($tmp_dir.DS.$images_name, ZIPARCHIVE::CREATE | ZIPARCHIVE::OVERWRITE);
-			if(!$result){
-				$this->Flash->error(__('ZIPファイルがオープンできません'));
-				$this->set(compact('err_msg'));
-				return;
-			}
-			foreach($images as $image)
-			{
-				$zip_obj->addFile(ROOT.DS.APP_DIR.DS.'files'.DS.$image, $image);
 			}
 			$zip_obj->close();
 		}
@@ -1102,10 +1116,7 @@ class ContentsController extends AppController
 		{
 			$zip_obj->addFile($tmp_dir.DS.$files_name, $files_name);
 		}
-		if(count($images) != 0)
-		{
-			$zip_obj->addFile($tmp_dir.DS.$images_name, $images_name);
-		}
+
 		$zip_obj->close();
 		//ダウンロード
 		header('Content-Type: application/force-download;');
@@ -1122,9 +1133,7 @@ class ContentsController extends AppController
 		//tmpフォルダ内のcsv、zipファイルを削除
 		unlink($tmp_dir.DS.$csv_name);
 		unlink($tmp_dir.DS.$files_name);
-		unlink($tmp_dir.DS.$images_name);
 		unlink($tmp_dir.DS.$exp_name);
-
 	}
 
 	/**
@@ -1137,7 +1146,6 @@ class ContentsController extends AppController
 
 		$err_msg = '';
 		$add_files = [];
-		$add_image_files = [];
 		
 		if($this->request->is(['post', 'put']))
 		{
@@ -1318,13 +1326,20 @@ class ContentsController extends AppController
 							$data['Content']['body'] = $row[$col_list['body']];
 							if(strstr($data['Content']['body'], 'file_image'))
 							{
-								if(preg_match_all('/file_image\/(.*?)\"/', $data['Content']['body'], $rich_images) > 0)
+								if(preg_match_all('/file_image\/(.+?)\/\d+\"/', $data['Content']['body'], $rich_images) > 0)
 								{
 									foreach($rich_images[1] as $image)
 									{
-										array_push($add_image_files, $image);
+										array_push($add_files, $image);
 									}
 								}
+								$data['Content']['body'] = preg_replace_callback(
+										'/(file_image\/.+?\/)\d+(\")/',
+										function($m) use ($course_id) {
+											return $m[1] . $course_id . $m[2];
+										},
+										$row[$col_list['body']]
+									);
 							}
 						}
 					}
@@ -1448,12 +1463,6 @@ class ContentsController extends AppController
 									// 必要な動画、画像、配布資料ファイルだけ保存
 									$content = $zip->getFromIndex($i);
 									file_put_contents($course_dir.$basename, $content);
-								}
-								elseif (in_array($basename, $add_image_files, true))
-								{
-									// 必要なイメージファイルだけ保存
-									$content = $zip->getFromIndex($i);
-									file_put_contents($app_files_dir.$basename, $content);
 								}
 							}
 

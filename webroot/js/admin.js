@@ -1,7 +1,7 @@
 function CommonUtility() {}
 
 // リッチテキストエディタの設定
-CommonUtility.prototype.setRichTextEditor = function (selector, upload_image_maxsize, base_url)
+CommonUtility.prototype.setRichTextEditor = function (selector, upload_image_maxsize, base_url, course_id=0)
 {
 	// 旧パラメータ（use_upload_image）の対応
 	if((upload_image_maxsize===true)||(upload_image_maxsize===false))
@@ -23,7 +23,7 @@ CommonUtility.prototype.setRichTextEditor = function (selector, upload_image_max
 				$.ajax({
 					data: data,
 					type: 'POST',
-					url: base_url + 'admin/contents/upload_image',
+					url: base_url + 'admin/contents/upload_image/' + course_id,
 					cache: false,
 					contentType: false,
 					processData: false,
