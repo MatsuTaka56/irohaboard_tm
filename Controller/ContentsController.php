@@ -304,7 +304,7 @@ class ContentsController extends AppController
 		$course_name = $course['Course']['title'];
 
 		$safe_file_name = basename($file_name); // セキュリティ対策
-		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$course_name.DS.$safe_file_name;
+		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.'course_'.$course_id.DS.$safe_file_name;
 		
 		$upload_extensions = (array)Configure::read('upload_movie_extensions');
 		$extension = "." . pathinfo($safe_file_name, PATHINFO_EXTENSION);
@@ -354,7 +354,7 @@ class ContentsController extends AppController
 		$course_name = $course['Course']['title'];
 
 		$safe_file_name = basename($file_name); // セキュリティ対策
-		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$course_name.DS.$safe_file_name;
+		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.'course_'.$course_id.DS.$safe_file_name;
 		
 		$upload_extensions = (array)Configure::read('upload_image_extensions');
 		$extension = "." . pathinfo($safe_file_name, PATHINFO_EXTENSION);
@@ -477,7 +477,7 @@ class ContentsController extends AppController
 				}
 			}
 			// アップロード用のコースフォルダの存在チェック
-			$dirPath = $dirPath.DS.$course_name;
+			$dirPath = $dirPath.DS.'course_'.$course_id;
 			if (!is_dir($dirPath))
 			{
 				// なければ作成する
@@ -492,7 +492,7 @@ class ContentsController extends AppController
 			preg_match('/^(.+)\.(.+)$/', $this->getData('Content')['file']['name'], $split_file_name);
 			$original_file_name = $split_file_name[1].'.'.strtolower($split_file_name[2]);
 
-			$file_name = $dirPath.DS.$original_file_name;										//	ファイルのパス
+			$file_name = $dirPath.DS.$original_file_name;			//	ファイルのパス
 			$file_url = $original_file_name;
 			$mode = 'complete';
 			// アップロードファイルの存在をチェック
@@ -590,7 +590,7 @@ class ContentsController extends AppController
 				$course = $this->fetchTable('Course')->get($course_id);
 				$course_name = $course['Course']['title'];
 				// アップロード用のコースフォルダの存在チェック
-				$dirPath = $dirPath.DS.$course_name;
+				$dirPath = $dirPath.DS.'course_'.$course_id;
 				if (!is_dir($dirPath))
 				{
 					// なければ作成する
@@ -734,7 +734,7 @@ class ContentsController extends AppController
 		
 		// ファイルのパスを取得（公開ディレクトリの外）
 		$safe_file_name = basename($content['Content']['file_name']); // セキュリティ対策
-		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$content['Course']['title'].DS.$safe_file_name;
+		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.'course_'.$content['Course']['id'].DS.$safe_file_name;
 		
 		// ファイルが存在しない場合
 		if(!file_exists($file_path))
@@ -791,7 +791,7 @@ class ContentsController extends AppController
 		}
 
 		$safe_file_name = basename($content['Content']['file_name']); // セキュリティ対策
-		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$content['Course']['title'].DS.$safe_file_name;
+		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.'course_'.$content['Course']['id'].DS.$safe_file_name;
 		
 		$upload_extensions = (array)Configure::read('upload_movie_extensions');
 		$extension = "." . pathinfo($safe_file_name, PATHINFO_EXTENSION);
@@ -852,7 +852,7 @@ class ContentsController extends AppController
 		}
 
 		$safe_file_name = basename($content['Content']['file_name']); // セキュリティ対策
-		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.$content['Course']['title'].DS.$safe_file_name;
+		$file_path = ROOT.DS.APP_DIR.DS.'files'.DS.'course_'.$content['Course']['id'].DS.$safe_file_name;
 		
 		$upload_extensions = (array)Configure::read('upload_image_extensions');
 		$extension = "." . pathinfo($safe_file_name, PATHINFO_EXTENSION);
@@ -929,7 +929,7 @@ class ContentsController extends AppController
 			// コースの情報を取得
 			$course = $this->fetchTable('Course')->get($course_id);
 			$course_name = $course['Course']['title'];
-			$file_path = $file_path.$course_name.DS;
+			$file_path = $file_path.'course_'.$course_id.DS;
 		}
 
 		$safe_file_name = basename($file_name); // セキュリティ対策
@@ -1044,7 +1044,7 @@ class ContentsController extends AppController
 							}
 							else
 							{
-								$line[] = $row['Content'][$key];
+								$line[] = $row['Content'][$key] + 1;
 							}
 							break;
 						case 'mode':
@@ -1098,7 +1098,7 @@ class ContentsController extends AppController
 			}
 			foreach($files as $file)
 			{
-				$zip_obj->addFile(ROOT.DS.APP_DIR.DS.'files'.DS.$course_name.DS.$file, $file);
+				$zip_obj->addFile(ROOT.DS.APP_DIR.DS.'files'.DS.'course_'.$course_id.DS.$file, $file);
 			}
 			$zip_obj->close();
 		}
@@ -1347,7 +1347,7 @@ class ContentsController extends AppController
 					$data['Content']['timelimit'] = "";
 					$data['Content']['pass_rate'] = "";
 					$data['Content']['question_count'] = "";
-					$data['Content']['wrong_mode'] = "";
+					$data['Content']['wrong_mode'] = 1;
 					if($data['Content']['kind'] == 'test')
 					{
 						list($is_error, $err_msg) = $this -> test_num_check($row[$col_list['timelimit']], 1, 100, $i, 'テスト制限時間', $err_msg);
@@ -1366,15 +1366,15 @@ class ContentsController extends AppController
 						if($is_error) break;
 						if($row[$col_list['wrong_mode']] == null) 
 						{
-							$data['Content']['wrong_mode'] = 2;
+							$data['Content']['wrong_mode'] = 1;
 						}
 						else
 						{
-							$data['Content']['wrong_mode'] = $row[$col_list['wrong_mode']];
+							$data['Content']['wrong_mode'] = $row[$col_list['wrong_mode']] - 1;
 						}
 					}
 
-					if(in_array($data['Content']['kind'],['html', 'url', 'movie', 'pict']))
+					if(in_array($data['Content']['kind'],['label', 'html', 'url', 'movie', 'pict']))
 					{
 						if($row[$col_list['mode']] != null) 
 						{
@@ -1432,7 +1432,7 @@ class ContentsController extends AppController
 						$course = $this->fetchTable('Course')->get($course_id);
 						$course_name = $course['Course']['title'];
 						// 保存ディレクトリの設定
-						$course_dir = ROOT.DS.APP_DIR.DS.'files'.DS.$course_name.DS;
+						$course_dir = ROOT.DS.APP_DIR.DS.'files'.DS.'course_'.$course_id.DS;
 						$app_files_dir = ROOT.DS.APP_DIR.DS.'files'.DS;
 						if (!file_exists($course_dir))
 						{
