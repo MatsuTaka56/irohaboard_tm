@@ -70,6 +70,13 @@ class AppController extends Controller
 			$this->Security->blackHoleCallback = 'blackHole';
 		}
 		
+		// PostやAjaxを許可する
+		if(str_contains($this->action, "admin"))
+		{
+			$this->Security->validatePost = false; // Post
+			$this->Security->csrfCheck = false;   // Ajax
+		}
+
 		// 他のサイトの設定が存在する場合、設定情報及びログイン情報をクリア
 		if($this->hasSession('Setting'))
 		{
