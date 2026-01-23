@@ -121,9 +121,9 @@ $config['upload_movie_extensions'] = [
 ];
 
 // アップロードサイズの上限（別途 php.ini で upload_max_filesize を設定する必要があります）
-$config['upload_maxsize']		= 1024 * 1024 * 10;
-$config['upload_image_maxsize'] = 1024 * 1024 *  2;
-$config['upload_movie_maxsize'] = 1024 * 1024 * 10;
+$config['upload_maxsize']		= 1024 * 1024 * 10;		//10
+$config['upload_image_maxsize'] = 1024 * 1024 *  4;		//2
+$config['upload_movie_maxsize'] = 1024 * 1024 * 20;		//10
 
 // select2 項目選択時の自動クローズの設定 (true ; 自動的にメニューを閉じる, false : 閉じない)
 $config['close_on_select'] = true;
