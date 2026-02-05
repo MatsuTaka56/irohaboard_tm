@@ -433,4 +433,516 @@ class ContentsQuestionsController extends AppController
 		// 全て含まれていれば正解
 		return true;
 	}
+
+	/**
+	 * テスト問題情報のエクスポート
+	 */
+	public function admin_export($content_id)
+	{
+		// コンテンツの情報を取得
+		$content = $this->fetchTable('Content')->get($content_id);
+		$content_name = $content['Content']['title'];
+		$course_id = $content['Content']['course_id'];
+		// コースの情報を取得
+		$course = $this->fetchTable('Course')->get($course_id);
+		$course_name = $course['Course']['title'];
+		
+		$this->autoRender = false;
+		Configure::write('debug', 0);
+
+		//ファイルエクスポート用のzipオブジェクトを定義
+		$zip_obj = new ZipArchive;
+		$tmp_dir = ROOT.DS.APP_DIR.DS.'files'.'/tmp';
+		$files_name = $course_name.'_'.$content_name.'_files_'.date('Ymd').'.zip';
+		$files = array();
+		$csv_name = $course_name.'_'.$content_name.'_csv_'.date('Ymd').'.csv';
+		$exp_name = $course_name.'_'.$content_name.'_exp_'.date('Ymd').'.zip';
+
+		if(!is_dir($tmp_dir))
+		{
+			mkdir($tmp_dir, 0755);
+		}
+
+		$fp = fopen($tmp_dir.DS.$csv_name,'w');
+
+		$header_list = Configure::read('export_content_question_header');
+		//------------------------------//
+		//	ヘッダー行の作成			//
+		//------------------------------//
+		$header = array();
+		foreach ($header_list as $key => $val)
+		{
+			$header[] = __($val.' ');
+		}
+		
+		// ヘッダー行をCSV出力
+		mb_convert_variables('SJIS-win', 'UTF-8', $header);
+		fputcsv($fp, $header);
+		
+		//------------------------------//
+		//	問題情報の取得			//
+		//------------------------------//
+		
+		// パフォーマンスの改善の為、一定件数に分割してデータを取得
+		$limit      = 500;
+		$contentsQuestion_count = $this->ContentsQuestion->find()
+				->where(['content_id' => $content_id])
+				->count();	// テスト問題数を取得
+		$page_size  = ceil($contentsQuestion_count / $limit);	// ページ数（テスト問題数 / ページ単位）
+		
+		// ページ単位でテスト問題を取得
+		for($page=1; $page <= $page_size; $page++)
+		{
+			// テスト問題情報をページ単位に取得
+			$this->ContentsQuestion->recursive = 1;
+			$rows = $this->ContentsQuestion->find()
+				->where(['content_id' => $content_id])
+				->limit($limit)
+				->page($page)
+				->all();
+			
+			foreach($rows as $row)
+			{
+				//------------------------------//
+				//	出力するデータを作成		//
+				//------------------------------//
+				// 出力行を作成
+				$line = array();
+				foreach ($header_list as $key => $val)
+				{
+					$line[] = $row['ContentsQuestion'][$key];
+				}
+
+				// CSV出力
+				mb_convert_variables('SJIS-win', 'UTF-8', $line);
+				fputcsv($fp, $line);
+
+				// 問題文中のファイル名を抽出
+				if(preg_match_all('/file_image\/(.+?)\/\d+\"/', $row['ContentsQuestion']['body'], $rich_images) > 0)
+				{
+					foreach($rich_images[1] as $image)
+					{
+						array_push($files, $image);
+					}
+				}
+				
+				// 解説文中のファイル名を抽出
+				if(preg_match_all('/file_image\/(.+?)\/\d+\"/', $row['ContentsQuestion']['explain'], $rich_images) > 0)
+				{
+					foreach($rich_images[1] as $image)
+					{
+						array_push($files, $image);
+					}
+				}
+
+			}
+		}
+		
+		fclose($fp);
+
+		// 問題文、解説文中のimageファイルがあれば、zipにまとめる
+		if(count($files) != 0)
+		{
+			$result = $zip_obj->open($tmp_dir.DS.$files_name, ZIPARCHIVE::CREATE | ZIPARCHIVE::OVERWRITE);
+			if(!$result){
+				$this->Flash->error(__('ZIPファイルがオープンできません'));
+				$this->set(compact('err_msg'));
+				return;
+			}
+			foreach($files as $file)
+			{
+				$zip_obj->addFile(ROOT.DS.APP_DIR.DS.'files'.DS.'course_'.$course_id.DS.$file, $file);
+			}
+			$zip_obj->close();
+		}
+
+		// 全体をzipでまとめて、ダウンロードする
+		$result = $zip_obj->open($tmp_dir.DS.$exp_name, ZIPARCHIVE::CREATE | ZIPARCHIVE::OVERWRITE);
+		if(!$result){
+			$this->Flash->error(__('ZIPファイルがオープンできません'));
+			$this->set(compact('err_msg'));
+			return;
+		}
+		
+		$zip_obj->addFile($tmp_dir.DS.$csv_name, $csv_name);
+		if(count($files) != 0)
+		{
+			$zip_obj->addFile($tmp_dir.DS.$files_name, $files_name);
+		}
+
+		$zip_obj->close();
+		//ダウンロード
+		header('Content-Type: application/force-download;');
+		header('Content-Length: '.filesize($tmp_dir.DS.$exp_name));
+		header('Content-Disposition: attachment; filename="'.$exp_name.'"');
+		$result = readfile($tmp_dir.DS.$exp_name);
+		if($result == false)
+		{
+			$this->Flash->error(__('ZIPファイルが読み込みできません'));
+			$this->set(compact('err_msg'));
+			return;
+		}
+
+		//tmpフォルダ内のcsv、zipファイルを削除
+		unlink($tmp_dir.DS.$csv_name);
+		unlink($tmp_dir.DS.$files_name);
+		unlink($tmp_dir.DS.$exp_name);
+
+	}
+
+	/**
+	 * テスト問題情報のインポート
+	 */
+	public function admin_import($content_id)
+	{
+		if(Configure::read('demo_mode'))
+			return;
+
+		// コンテンツの情報を取得
+		$content = $this->fetchTable('Content')->get($content_id);
+		$course_id = $content['Content']['course_id'];
+
+		$err_msg = '';
+		$add_files = [];
+		
+		if($this->request->is(['post', 'put']))
+		{
+		//========== CSVファイル ====================================//
+			//------------------------------//
+			//	列番号の定義				//
+			//------------------------------//
+
+			$header_list = Configure::read('import_content_question_header');
+			$col_no = 0;
+			foreach ($header_list as $key => $val)
+			{
+				$col_list[$val] = $col_no;
+				$col_no++;
+			}
+
+			//------------------------------//
+			//	CSVファイルの読み込み		//
+			//------------------------------//
+			// 制限時間を120秒に設定
+			set_time_limit(120);
+			
+			$csvfile = $this->request->data['ContentsQuestion']['csvfile'];
+			
+			// インポートファイルが指定されていない場合、エラーメッセージを表示
+			if($csvfile['error'] != 0)
+			{
+				$this->Flash->error(__('インポートファイルが指定されていません'));
+				$this->set(compact('err_msg'));
+				return;
+			}
+			
+			// CSVファイルの読み込み
+			$csv = Utils::getCsvData($csvfile['tmp_name']);
+			
+			$i = 0;
+			
+			$ds = $this->ContentsQuestion->getDataSource();
+			$ds->begin();
+			
+			try
+			{
+				$is_error = false;
+
+				// 該当コンテンツの問題コンテンツに削除フラグ（ダミー）を立てる
+				$contents_questions = $this->ContentsQuestion->find()
+					->where(['ContentsQuestion.content_id' => $content_id])
+					->all();
+				foreach($contents_questions as $question_dell)
+				{
+					$question_dell['ContentsQuestion']['sort_no'] = 99999;		// 仮の削除設定
+					$question_dell['ContentsQuestion']['modified'] = date('Y-m-d H:i:s');
+					$update_data = $this->make_update_data($question_dell['ContentsQuestion']);
+					if(!$this->ContentsQuestion->save($update_data))
+					{
+						// 保存時にエラーが発生した場合、モデルからエラー情報を抽出
+						$err_list = $this->ContensQuestion->validationErrors;
+						foreach($err_list as $err)
+						{
+							$err_msg .= '<li>'.$i.'行目 : '.$err[0].'</li>';
+						}
+						$is_error = true;
+					}
+				}
+
+				// 1行ごとにデータを登録
+				$header_def = array_keys($header_list);
+				foreach($csv as $row)
+				{
+					$i++;	//行カウンタ＋１
+					
+					if($i == 1)		//ヘッダ行（1行目）
+					{
+						// 列順序を確認する
+						foreach($row as $index => $header_import)
+						{
+							if($index >= count($header_def)) break;
+							if(trim($header_import) != $header_def[$index])
+							{
+								$is_error = true;
+								$err_msg .= '<li>'.$i.'行目 : ヘッダ項目が一致しません</li>';
+								break;
+							}
+						}
+						if($is_error) break;	//ヘッダ行不良 => import処理中断
+						continue;				// ヘッダ行をスキップ
+					}
+					
+					if(count($row) < count($header_def))	// ヘッダ項目数以下の行はスキップ
+						continue;
+					
+					$is_new = false;
+					$data = [];
+					$data['ContentsQuestion'] = [];
+					$this->ContentsQuestion->create();
+					
+					//------------------------------//
+					//	コンテンツ情報の作成			//
+					//------------------------------//
+					$ex_data = $this->ContentsQuestion->find()
+						->where(['ContentsQuestion.content_id' => $content_id])
+						->where(['ContentsQuestion.sort_no' => 99999])
+						->first();
+					
+					// 指定したコンテンツIDおよび仮の削除識別(sort_no=99999)の既存コンテンツが存在しない場合、新規追加とする
+					if(!$ex_data)
+					{
+						$data['ContentsQuestion']['created'] = date('Y-m-d H:i:s');
+						$is_new = true;
+					}
+					else
+					{
+						$data['ContentsQuestion']['id'] = $ex_data['Content']['id'];
+						$data['ContentsQuestion']['created'] = $ex_data['Content']['created'];
+					}
+					
+					//importデータの指定の有無を確認しながらコンテンツデータを作成する
+					$data['ContentsQuestion']['content_id'] = $content_id;
+					$data['ContentsQuestion']['title'] = $row[$col_list['title']];
+					if($row[$col_list['body']] === null) 
+					{
+						$is_error = true;
+						$err_msg .= '<li>'.$i.'行目 : 問題文が指定されていません。</li>';
+						break;
+					}
+					// リッチテキスト内のコースIDをインポート先のコースIDに変更し、インポートファイルを抽出する
+					list($data['ContentsQuestion']['body'], $add_files) = $this->check_import_file($row[$col_list['body']], $add_files, $course_id);
+					
+					$data['ContentsQuestion']['image'] = $row[$col_list['image']];			// ファイル名
+					if($row[$col_list['options']] === null) 
+					{
+						$is_error = true;
+						$err_msg .= '<li>'.$i.'行目 : 選択肢が指定されていません。</li>';
+						break;
+					}
+					$data['ContentsQuestion']['options'] = $row[$col_list['options']];		// 選択肢
+					if($row[$col_list['correct']] === null) 
+					{
+						$is_error = true;
+						$err_msg .= '<li>'.$i.'行目 : 正解が指定されていません。</li>';
+						break;
+					}
+					$data['ContentsQuestion']['correct'] = $row[$col_list['correct']];
+					if($row[$col_list['score']] === null) 
+					{
+						$is_error = true;
+						$err_msg .= '<li>'.$i.'行目 : 得点が指定されていません。</li>';
+						break;
+					}
+					$data['ContentsQuestion']['score'] = $row[$col_list['score']];
+					// リッチテキスト内のコースIDをインポート先のコースIDに変更し、インポートファイルを抽出する
+					list($data['ContentsQuestion']['explain'], $add_files) = $this->check_import_file($row[$col_list['explain']], $add_files, $course_id);
+
+					$data['ContentsQuestion']['sort_no'] = $i - 1;
+					$data['ContentsQuestion']['comment'] = $row[$col_list['comment']];
+					//$data['ContentsQuestion']['created'] = $row[COL_created];
+					$data['ContentsQuestion']['modified'] = date('Y-m-d H:i:s');
+					
+					//------------------------------//
+					//	保存						//
+					//------------------------------//
+					if(!$this->ContentsQuestion->save($data))
+					{
+						// 保存時にエラーが発生した場合、モデルからエラー情報を抽出
+						$err_list = $this->ContentsQuestion->validationErrors;
+						
+						foreach($err_list as $err)
+						{
+							$err_msg .= '<li>'.$i.'行目 : '.$err[0].'</li>';
+						}
+						
+						$is_error = true;
+					}
+				}
+
+				//========== ZIPファイル ====================================//
+				if((count($add_files) >0) && !$is_error)
+				{
+					// 画像、動画、イメージファイルの指定がある。
+					//------------------------------//
+					//	ZIPファイルの読み込み		 //
+					//------------------------------//
+					
+					$zipfile = $this->request->data['ContentsQuestion']['zipfile'];
+					
+					// インポートファイル(ZIPファイル)が指定されていれば、
+					// 内部の必要ファイルを抽出=>保存する
+					if($zipfile['error'] == 0)
+					{
+						// 保存ディレクトリの設定
+						$course_dir = ROOT.DS.APP_DIR.DS.'files'.DS.'course_'.$course_id.DS;
+						$app_files_dir = ROOT.DS.APP_DIR.DS.'files'.DS;
+						if (!file_exists($course_dir))
+						{
+							// 存在しなければ作成
+							mkdir($course_dir, 0777, true);
+						}
+
+						// ZIPファイルの読み込み=>ファイル名抽出=>$add_filesに含まれるファイルの場合保存
+						$zip = new ZipArchive();
+						if ($zip->open($zipfile['tmp_name']) === TRUE)
+						{
+							// ZIP内のファイルを走査
+							for ($i = 0; $i < $zip->numFiles; $i++)
+							{
+								$entry = $zip->getNameIndex($i);
+
+								// ディレクトリはスキップ
+								if (substr($entry, -1) === '/')
+								{
+									continue;
+								}
+
+								// ファイル名のみ取り出して判定
+								$basename = basename($entry);
+
+								if (in_array($basename, $add_files, true))
+								{
+									// 必要な動画、画像、イメージファイルだけ保存
+									$content = $zip->getFromIndex($i);
+									file_put_contents($course_dir.$basename, $content);
+								}
+							}
+
+							$zip->close();
+							// ZIPファイルを削除
+							unlink($zipfile['tmp_name']);
+						}
+					}
+					else
+					{
+						$is_error = true;
+						$err_msg .= '<li>画像、動画、イメージ用のZIPファイルが読むことができません。</li>';
+					}
+				}
+								
+				//------------------------------//
+				//	エラー処理					//
+				//------------------------------//
+				if($is_error)
+				{
+					$ds->rollback();
+					$this->Flash->error(__('インポートに失敗しました'));
+				}
+				else
+				{
+					$ds->commit();
+					$this->Flash->success(__('インポートが完了しました'));
+					return $this->redirect(['action' => 'index', $content_id]);
+				}
+			}
+			catch(Exception $e)
+			{
+				$ds->rollback();
+				$this->Flash->error(__('インポートに失敗しました'));
+			}
+		}
+		
+		$this->set(compact('err_msg'));
+		$this->set('content_id', $content_id);
+	}
+
+	// リッチテキスト内のコースIDをインポート先のコースIDに変更し、インポートファイルを抽出する
+	private function check_import_file($rich_text, $files_list, $course_id)
+	{
+		if(strstr($rich_text, 'file_image'))
+		{
+			if(preg_match_all('/file_image\/(.+?)\/\d+\"/', $rich_text, $rich_images) > 0)
+			{
+				foreach($rich_images[1] as $image)
+				{
+					array_push($files_list, $image);
+				}
+			}
+			$rich_text = preg_replace_callback(
+					'/(file_image\/.+?\/)\d+(\")/',
+					function($m) use ($course_id) {
+						return $m[1] . $course_id . $m[2];
+					},
+					$rich_text
+				);
+		}
+		return [$rich_text, $files_list];
+
+	}
+
+	/**
+	 * テスト問題のコピー
+	 * @param int $content_id コピーするテスト問題のコンテンツのID
+	 * @param int $contentsQuestion_id コピーするテスト問題のID
+	 */
+	public function admin_copy($content_id, $contentsQuestion_id)
+	{
+		$this->request->allowMethod('post');
+		
+		$contentsQuestion = $this->fetchTable('ContentsQuestion')->get($contentsQuestion_id);
+		
+		$row = $this->fetchTable('ContentsQuestion')->find()
+			->where(['content_id' => $content_id])
+			->select('MAX(ContentsQuestion.sort_no) as max_sort_no')
+			->first();
+		$new_sort_no = $row[0]['max_sort_no'] + 1;
+
+		$contentsQuestion['ContentsQuestion']['title'] .= 'の複製';
+		$contentsQuestion['ContentsQuestion']['id']			= null;
+		$contentsQuestion['ContentsQuestion']['created']	= null;
+		$contentsQuestion['ContentsQuestion']['modified']	= null;
+		$contentsQuestion['ContentsQuestion']['sort_no']	= $new_sort_no;
+		
+		$this->fetchTable('ContentsQuestion')->validate = null;
+		
+		$this->fetchTable('ContentsQuestion')->create($contentsQuestion);
+		$this->fetchTable('ContentsQuestion')->save();
+			
+		
+		return $this->redirect(['action' => 'index',$content_id]);
+	}
+
+	/**
+	 * テスト問題情報のDB書き込み用データを作成
+	 */
+	private function make_update_data($indata)
+	{
+		$outdata = [];
+		$outdata['id'] 			= $indata['id'];
+		$outdata['content_id'] 	= $indata['content_id'];
+		//$outdata['question_type'] = $indata['question_type'];
+		$outdata['title'] 		= $indata['title'];
+		$outdata['body'] 		= Utils::transform_to_richtext($indata['body']);
+		$outdata['image'] 		= $indata['image'];
+		$outdata['options'] 	= $indata['options'];
+		$outdata['correct'] 	= $indata['correct'];
+		$outdata['score'] 		= $indata['score'];
+		$outdata['explain'] 	= Utils::transform_to_richtext($indata['explain']);
+		$outdata['sort_no'] 	= $indata['sort_no'];
+		$outdata['comment'] 	= $indata['comment'];
+		$outdata['created'] 	= $indata['created'];
+		$outdata['modified'] 	= $indata['modified'];
+		return $outdata;
+	}
+
 }

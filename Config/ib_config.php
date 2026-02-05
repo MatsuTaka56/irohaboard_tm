@@ -232,3 +232,27 @@ $config['import_content_header'] = [
 	'ステータス' => 'status',
 	'備考' => 'comment',
 ];
+// テスト問題コンテンツのExport用ヘッダ
+$config['export_content_question_header'] = [
+	'title' => '問題名',
+	'body' => '問題文',
+	'image' => 'ファイル名',
+	'options' => '選択肢',
+	'correct' => '正解',
+	'score' => '得点',
+	'explain' => '解説',
+	'comment' => '備考',
+	'created' => '作成日時',
+	'modified' => '更新日時',
+];
+// テスト問題コンテンツのImport用ヘッダ
+$config['import_content_question_header'] = [
+	'問題名' => 'title',
+	'問題文' => 'body',
+	'ファイル名' => 'image',
+	'選択肢' => 'options',
+	'正解' => 'correct',
+	'得点' => 'score',
+	'解説' => 'explain',
+	'備考' => 'comment',
+];

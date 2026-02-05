@@ -44,6 +44,27 @@
 			opacity: 0.5
 		});
 	});
+
+	// 問題コンテンツのインポートに関する確認
+	function confirmImport()
+	{
+		<?php	if(!empty($contents)){	?>
+			var result = window.confirm(
+				'すでに問題が登録されています。\n'+
+				'これらの問題を置き換えますか？\n'+
+				'置き換えの場合はすべての問題が削除されます。');
+        	if( result ) {
+        		console.log('OKがクリックされました');
+				location.href='<?= Router::url(['action' => 'import', $content['Content']['id']]) ?>';
+    		}
+    		else {
+        		console.log('キャンセルがクリックされました');
+    		}
+		<?php	}else{	?>
+				location.href='<?= Router::url(['action' => 'import', $content['Content']['id']]) ?>';
+		<?php	}	?>
+	}
+
 </script>
 <?php $this->end(); ?>
 
@@ -60,6 +81,8 @@
 	<div class="ib-page-title"><?= __('テスト問題一覧'); ?></div>
 	
 	<div class="buttons_container">
+		<button type="button" class="btn btn-primary btn-export" onclick="location.href='<?= Router::url(['action' => 'export', $content['Content']['id']]) ?>'">エクスポート</button>
+		<button type="button" class="btn btn-primary btn-import" onclick="confirmImport();">インポート</button>
 		<button type="button" class="btn btn-primary btn-add" onclick="location.href='<?= Router::url(['action' => 'add', $content['Content']['id']]) ?>'">+ 追加</button>
 	</div>
 	
@@ -89,6 +112,7 @@
 		<td class="ib-col-date"><?= Utils::getYMDHN($contentsQuestion['ContentsQuestion']['modified']); ?>&nbsp;</td>
 		<td class="actions text-center">
 			<button type="button" class="btn btn-success" onclick="location.href='<?= Router::url(['action' => 'edit', $contentsQuestion['Content']['id'], $contentsQuestion['ContentsQuestion']['id']]) ?>'">編集</button>
+			<?= $this->Form->postLink(__('複製'), ['action' => 'copy', $contentsQuestion['Content']['id'], $contentsQuestion['ContentsQuestion']['id']], ['class'=>'btn btn-info']);?>
 			<?php if($loginedUser['role'] == 'admin') {?>
 			<?= $this->Form->postLink(__('削除'), ['action' => 'delete', $contentsQuestion['ContentsQuestion']['id']], ['class'=>'btn btn-danger'], 
 					__('[%s] を削除してもよろしいですか?', $contentsQuestion['ContentsQuestion']['title'])); ?>

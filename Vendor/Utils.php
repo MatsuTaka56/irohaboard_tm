@@ -189,5 +189,23 @@ class Utils
 	{
 		return (isset($check)) ? $check : $alternate;
 	}
+
+	/**
+	 * テスト問題文、解説文を簡易なリッチテキストに変換
+	 * @param string テキストデータ
+	 * @return string リッチテキストデータ
+	 */
+	public static function transform_to_richtext($indata)
+	{
+		$outdata = [];
+		if(preg_match("/<p>/", $indata)) return $indata;
+		$outdata = "<p>".$indata."</p>";
+		$outdata = preg_replace("/\n\n/", "</p><p>", $outdata);
+		$outdata = preg_replace("/\n/", "<br>", $outdata);
+		
+		return $outdata;
+	}
+
+
 }
 
