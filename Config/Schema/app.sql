@@ -249,7 +249,7 @@ CREATE TABLE IF NOT EXISTS `ib_cake_sessions` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-INSERT INTO `ib_settings` VALUES ('1', 'title', 'システム名', 'iroha Board');
-INSERT INTO `ib_settings` VALUES ('2', 'copyright', 'コピーライト', 'Copyright (C) 2016-2022 iroha Soft Co.,Ltd. All rights reserved.');
+INSERT INTO `ib_settings` VALUES ('1', 'title', 'システム名', 'eラーニングシステム');
+INSERT INTO `ib_settings` VALUES ('2', 'copyright', 'コピーライト', 'Copyright (C) 2016-2026 XXX Co.,Ltd. All rights reserved.');
 INSERT INTO `ib_settings` VALUES ('3', 'color', 'テーマカラー', '#337ab7');
-INSERT INTO `ib_settings` VALUES ('4', 'information', 'お知らせ', '全体のお知らせを表示します。\r\nこのお知らせは管理機能の「システム設定」にて変更可能です。');
+INSERT INTO `ib_settings` VALUES ('4', 'information', 'お知らせ', 'このお知らせは管理システムの「システム設定」にて変更可能です。\r\niroha Board 公式サイト\r\nhttps://irohaboard.irohasoft.jp/');
