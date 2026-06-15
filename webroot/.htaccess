@@ -31,6 +31,8 @@ RewriteCond %{REQUEST_URI} \.php$ [NC]
 RewriteCond %{REQUEST_URI} !/(index|test_pi)\.php$ [NC]
 RewriteRule ^ - [F,L]
 
+# Deny access to well-known files
+RewriteRule ^\.well-known/ - [R=404,L]
 
 <IfModule mod_headers.c>
 	Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
