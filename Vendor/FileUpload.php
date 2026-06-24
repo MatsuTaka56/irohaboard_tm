@@ -92,7 +92,7 @@ class FileUpload
 		$extension = $this->_file_name_ext;										//	拡張子の取得
 		$ext_array = $this->extensions;											//	許可拡張子を配列で取得
 
-		if(in_array( $extension, $ext_array ) )						 			//	許可拡張子に含まれるかどうかを判定
+		if(in_array( strtolower($extension), $ext_array ) )						 			//	許可拡張子に含まれるかどうかを判定
 		{
 			return true;
 		}

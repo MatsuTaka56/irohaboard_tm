@@ -820,7 +820,7 @@ class ContentsQuestionsController extends AppController
 								// ファイル名のみ取り出して判定
 								$basename = basename($entry);
 
-								if (in_array($basename, $add_files, true))
+								if (in_array(mb_strtolower($basename), array_map('mb_strtolower', $add_files), true))
 								{
 									// 必要な動画、画像、イメージファイルだけ保存
 									$content = $zip->getFromIndex($i);

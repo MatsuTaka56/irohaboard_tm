@@ -310,7 +310,7 @@ class ContentsController extends AppController
 		$extension = "." . pathinfo($safe_file_name, PATHINFO_EXTENSION);
 
 		// 動画ファイル以外が指定されている場合
-		if(!in_array($extension, $upload_extensions))
+		if(!in_array(strtolower($extension), $upload_extensions))
 		{
 			throw new NotFoundException(__('Invalid content'));
 		}
@@ -360,7 +360,7 @@ class ContentsController extends AppController
 		$extension = "." . pathinfo($safe_file_name, PATHINFO_EXTENSION);
 
 		// 画像ファイル以外が指定されている場合
-		if(!in_array($extension, $upload_extensions))
+		if(!in_array(strtolower($extension), $upload_extensions))
 		{
 			throw new NotFoundException(__('Invalid content'));
 		}
@@ -797,7 +797,7 @@ class ContentsController extends AppController
 		$extension = "." . pathinfo($safe_file_name, PATHINFO_EXTENSION);
 
 		// 動画ファイル以外が指定されている場合
-		if(!in_array($extension, $upload_extensions))
+		if(!in_array(strtolower($extension), $upload_extensions))
 		{
 			throw new NotFoundException(__('Invalid content'));
 		}
@@ -858,7 +858,7 @@ class ContentsController extends AppController
 		$extension = "." . pathinfo($safe_file_name, PATHINFO_EXTENSION);
 
 		// 画像ファイル以外が指定されている場合
-		if(!in_array($extension, $upload_extensions))
+		if(!in_array(strtolower($extension), $upload_extensions))
 		{
 			throw new NotFoundException(__('Invalid content'));
 		}
@@ -918,7 +918,7 @@ class ContentsController extends AppController
 		$extension = "." . pathinfo($file_name, PATHINFO_EXTENSION);
 
 		// 許可する拡張子以外が指定されている場合
-		if(!in_array($extension, $upload_extensions))
+		if(!in_array(strtolower($extension), $upload_extensions))
 		{
 			throw new NotFoundException(__('Invalid content'));
 		}
@@ -1458,7 +1458,7 @@ class ContentsController extends AppController
 								// ファイル名のみ取り出して判定
 								$basename = basename($entry);
 
-								if (in_array($basename, $add_files, true))
+								if (in_array(mb_strtolower($basename), array_map('mb_strtolower', $add_files), true))
 								{
 									// 必要な動画、画像、配布資料ファイルだけ保存
 									$content = $zip->getFromIndex($i);
