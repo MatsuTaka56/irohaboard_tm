@@ -55,7 +55,7 @@ class RecordsController extends AppController
 		// コンテンツ種別：学習の場合
 		if($content_category == 'study')
 		{
-			$conditions['Content.kind'] = ['text', 'html', 'movie', 'url'];
+			$conditions['Content.kind'] = ['text', 'html', 'movie', 'url', 'pict'];
 		}
 		// テスト（test）等、学習以外のコンテンツ種別の場合
 		if(
