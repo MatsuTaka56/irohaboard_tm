@@ -192,12 +192,36 @@ class ContentsController extends AppController
 				$this->request->data['Content']['course_id'] = $course_id;
 				$this->request->data['Content']['sort_no']	 = $this->Content->getNextSortNo($course_id);
 			}
-			
+			// コンテンツモードのDB用の設定
 			if(in_array($this->request->data['Content']['kind'],['html', 'url', 'movie', 'pict']))
 			{
 				$this->request->data['Content']['wrong_mode'] = $this->request->data['Content']['mode'];
 			}
-
+			// 各コンテンツ種別の不要な項目の初期化
+			// 不正解時モード
+			if(in_array($this->request->data['Content']['kind'],['label', 'file']))
+			{
+				$this->request->data['Content']['wrong_mode'] = 0;
+			}
+			// URL
+			if($this->request->data['Content']['kind'] != 'url') $this->request->data['Content']['url'] = "";
+			// filename
+			if(in_array($this->request->data['Content']['kind'],['label', 'html', 'url', 'test']))
+			{
+				$this->request->data['Content']['file_name'] = "";
+			}
+			// body
+			if($this->request->data['Content']['kind'] != 'html') $this->request->data['Content']['body'] = "";
+			// timelimit
+			// passrate
+			// questionscount
+			if($this->request->data['Content']['kind'] != 'test')
+			{
+				$this->request->data['Content']['timelimit'] = "";
+				$this->request->data['Content']['pass_rate'] = "";
+				$this->request->data['Content']['question_count'] = "";
+			}
+			//
 			if($this->Content->save($this->request->data))
 			{
 				$this->Flash->success(__('コンテンツが保存されました'));
