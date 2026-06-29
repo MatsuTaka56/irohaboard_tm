@@ -107,12 +107,15 @@
 				break;
 			default :
 				$title = h($content['Content']['title']);
+				$content['Content']['mode'] = $content['Content']['wrong_mode'];
 				break;
 		}
 	?>
 	<tr>
 		<td><?= $title; ?></td>
-		<td><?= h(Configure::read('content_kind.'.$content['Content']['kind'])); ?>&nbsp;</td>
+		<td>
+		<?= h(Configure::read('content_kind.'.$content['Content']['kind'])); ?>&nbsp;
+		<?php if(($content['Content']['mode'] == 1 ) && ($content['Content']['kind'] != 'test')){?> / 仕切り <?php }; ?></td>
 		<td class="text-center"><?= h(Configure::read('content_status.'.$content['Content']['status'])); ?>&nbsp;</td>
 		<td class="ib-col-date"><?= Utils::getYMDHN($content['Content']['created']); ?>&nbsp;</td>
 		<td class="ib-col-date"><?= Utils::getYMDHN($content['Content']['modified']); ?>&nbsp;</td>

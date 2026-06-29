@@ -99,11 +99,11 @@
 				<div class="select-message">※ 理解度を選択すると、学習履歴を記録し<?= $mess_next_page; ?>を表示します。<?= $button_message; ?></div>
 				<span class='understanding-pc'></span>
 				<span class='understanding-spn'></span>
+				<button type="button" class="btn btn-danger" onclick="finish(0);"><?= __('中断');?></button>
 			<?php else: ?>
 				<div class="select-message">※ 行先ボタンを選択してください。</div>
 			<?php endif; ?>
 			
-			<button type="button" class="btn btn-danger" onclick="finish(0);"><?= __('中断');?></button>
 			<?php if ($prev_page != 0) : ?>
 				<button type="button" class="btn btn-primary" onclick="finish(-1, <?= $prev_page?>);"><?= __('前');?></button>
 			<?php endif; ?>

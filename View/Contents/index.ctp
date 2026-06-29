@@ -147,6 +147,7 @@ $is_admin_record = $this->isAdminPage() && $this->isRecordPage();
 				
 				break;
 			default : // その他（学習）
+				$content['Content']['mode'] = $content['Content']['wrong_mode'];
 				$icon  = 'glyphicon glyphicon-play-circle text-info';
 				$title_link = $this->Html->link(
 					$content['Content']['title'], [
@@ -154,8 +155,16 @@ $is_admin_record = $this->isAdminPage() && $this->isRecordPage();
 					'action' => 'view',
 					$content['Content']['id']
 				]);
-				$kind  =  __('学習'); // 一律学習と表記
-				$understanding = h(Configure::read('record_understanding.'.$content[0]['understanding']));
+				if($content['Content']['mode'] == 0)	// コンテンツモード＝学習？
+				{
+					$kind  =  __('学習'); // コンテンツモード＝学習
+					$understanding = h(Configure::read('record_understanding.'.$content[0]['understanding']));
+				}
+				else
+				{
+					$kind  =  __('仕切り'); // コンテンツモード＝仕切り
+					$understanding = '';
+				}
 				break;
 		}
 		
@@ -171,6 +180,13 @@ $is_admin_record = $this->isAdminPage() && $this->isRecordPage();
 		<?php if($content['Content']['kind'] == 'label') { // ラベルの場合、タイトルのみ表示 ?>
 		<tr>
 			<td colspan="8" class="content-label"><?= h($content['Content']['title']); ?>&nbsp;</td>
+		</tr>
+		<?php }else if($kind == '仕切り'){?>
+		<tr>
+			<td><span class="<?= $icon; ?>"></span>&nbsp;<?= $title_link; ?>&nbsp;</td>
+			<td class="ib-col-center" nowrap><?= h($kind); ?>&nbsp;</td>
+			<td class="ib-col-center" nowrap>-</td><td class="ib-col-center" nowrap>-</td><td class="ib-col-center" nowrap>-</td>
+			<td class="ib-col-center" nowrap>-</td><td class="ib-col-center" nowrap>-</td><td class="ib-col-center" nowrap>-</td>
 		</tr>
 		<?php }else{?>
 		<tr>
