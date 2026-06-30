@@ -686,7 +686,23 @@ class ContentsController extends AppController
 		$data['Content']['modified'] = null;
 		$data['Content']['status'] = 0;
 		$data['Content']['title'] .= 'の複製';
-		
+
+		// 本コンテンツ以降のsort_noのリナンバリング
+		$new_sort_no = $data['Content']['sort_no'] + 1;
+		$contents_for_sort = $this->fetchTable('Contents')->find()
+			->where(['course_id' => $data['Content']['course_id'], 'sort_no >= ' => $new_sort_no])
+			->order('Contents.sort_no asc')
+			->all();
+		$new_sort_no++;
+		foreach($contents_for_sort as $content_for_sort)
+		{
+			$content_for_sort['Contents']['sort_no'] = $new_sort_no;
+			$this->Contents->save($content_for_sort);
+			$new_sort_no++;
+		}
+		// コピーコンテンツのsort_no更新
+		$data['Content']['sort_no'] = $data['Content']['sort_no'] + 1;
+		// コピーコンテンツの保存
 		$this->Content->save($data);
 		
 		// テスト問題のコピー
