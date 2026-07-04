@@ -144,7 +144,7 @@ $is_admin_record = $this->isAdminPage() && $this->isRecordPage();
 				// URLが指定されている場合はそのまま開く
 				if(strpos($content['Content']['url'], 'http') === 0)
 					$title_link = $this->Html->link($content['Content']['title'], $content['Content']['url'], ['target' => '_blank']);
-				
+				$understanding = "-";
 				break;
 			default : // その他（学習）
 				$content['Content']['mode'] = $content['Content']['wrong_mode'];
@@ -194,7 +194,11 @@ $is_admin_record = $this->isAdminPage() && $this->isRecordPage();
 			<td class="ib-col-center" nowrap><?= h($kind); ?>&nbsp;</td>
 			<td class="ib-col-date"><?= Utils::getYMD($content['Record']['first_date']); ?>&nbsp;</td>
 			<td class="ib-col-date"><?= Utils::getYMD($content['Record']['last_date']); ?>&nbsp;</td>
-			<td class="ib-col-center"><?= str_replace('00:00:00', '', Utils::getHNSBySec($content['Record']['study_sec'])); ?>&nbsp;</td>
+			<?php if($kind == '配布資料'){?>
+				<td class="ib-col-center" nowrap>-</td>
+			<?php }else{?>
+				<td class="ib-col-center"><?= str_replace('00:00:00', '', Utils::getHNSBySec($content['Record']['study_sec'])); ?>&nbsp;</td>		
+			<?php }?>
 			<td class="ib-col-center"><?= h($content['Record']['study_count']); ?>&nbsp;</td>
 			<td nowrap class="ib-col-center"><?= $understanding; ?></td>
 			<td class="ib-col-center"><?= ($content['CompleteRecord']['is_complete'] == 1) ? '<span class="glyphicon glyphicon-ok text-muted"></span>' : ''; ?></td>

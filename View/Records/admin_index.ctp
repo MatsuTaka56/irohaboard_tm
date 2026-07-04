@@ -97,15 +97,20 @@
 		<td><?= h($record['User']['name']); ?>&nbsp;</td>
 		<td><a href="javascript:openRecord(<?= h($record['Course']['id']); ?>, <?= h($record['User']['id']); ?>);"><?= h($record['Course']['title']); ?></a></td>
 		<td><?= h($record['Content']['title']); ?>&nbsp;</td>
-		<td class="ib-col-center"><?= h($record['Record']['score']); ?>&nbsp;</td>
-		<td class="ib-col-center"><?= h($record['Record']['pass_score']); ?>&nbsp;</td>
-		<?php if ($record['Content']['kind'] == 'enquete') {?>
-		<td class="ib-col-center"><a href="javascript:openRecordEnquete(<?= h($record['Content']['id']); ?>, <?= h($record['Record']['id']); ?>);">回答</a></td>
+		<?php if ($record['Content']['kind'] == 'file') {?>
+			<td class="ib-col-center" nowrap>-</td><td class="ib-col-center" nowrap>-</td><td class="ib-col-center" nowrap>-</td>
+			<td class="ib-col-center" nowrap>-</td><td class="ib-col-center" nowrap>-</td>
 		<?php } else {?>
-		<td nowrap class="ib-col-center"><a href="javascript:openTestRecord(<?= h($record['Content']['id']); ?>, <?= h($record['Record']['id']); ?>);"><?= Configure::read('record_result.'.$record['Record']['is_passed']); ?></a></td>
+			<td class="ib-col-center"><?= h($record['Record']['score']); ?>&nbsp;</td>
+			<td class="ib-col-center"><?= h($record['Record']['pass_score']); ?>&nbsp;</td>
+			<?php if ($record['Content']['kind'] == 'enquete') {?>
+				<td class="ib-col-center"><a href="javascript:openRecordEnquete(<?= h($record['Content']['id']); ?>, <?= h($record['Record']['id']); ?>);">回答</a></td>
+			<?php } else {?>
+				<td nowrap class="ib-col-center"><a href="javascript:openTestRecord(<?= h($record['Content']['id']); ?>, <?= h($record['Record']['id']); ?>);"><?= Configure::read('record_result.'.$record['Record']['is_passed']); ?></a></td>
+			<?php }?>
+			<td nowrap class="ib-col-center"><?= h(Configure::read('record_understanding.'.$record['Record']['understanding'])); ?>&nbsp;</td>
+			<td class="ib-col-center"><?= h(Utils::getHNSBySec($record['Record']['study_sec'])); ?>&nbsp;</td>
 		<?php }?>
-		<td nowrap class="ib-col-center"><?= h(Configure::read('record_understanding.'.$record['Record']['understanding'])); ?>&nbsp;</td>
-		<td class="ib-col-center"><?= h(Utils::getHNSBySec($record['Record']['study_sec'])); ?>&nbsp;</td>
 		<td class="ib-col-date"><?= h(Utils::getYMDHN($record['Record']['created'])); ?>&nbsp;</td>
 	</tr>
 	<?php endforeach; ?>

@@ -792,7 +792,30 @@ class ContentsController extends AppController
 			'download' => true,
 			'name' => $content['Content']['file_name']
 		]);
+
+		// 学習履歴データを作成
+		$this->fetchTable('Record')->create();
+
+		$record_data = [
+			'user_id'		=> $this->readAuthUser('id'),
+			'course_id'		=> $content['Course']['id'],
+			'content_id'	=> $content_id,
+			'study_sec'		=> 0,
+			'understanding'	=> 99,		// 配布資料 識別
+			'is_passed'		=> -1,
+			'is_complete'	=> 1
+		];
 		
+		// 学習履歴を保存
+		if($this->fetchTable('Record')->save($record_data))
+		{
+			$this->Flash->success(__('学習履歴を保存しました'));
+		}
+		else
+		{
+			$this->Flash->error(__('The record could not be saved. Please, try again.'));
+		}
+
 		return $this->response;
 	}
 

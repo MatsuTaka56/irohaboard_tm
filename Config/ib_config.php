@@ -38,6 +38,8 @@ $config['content_kind_comment']		= [
 $config['content_category']	= [
 	'study'		=> '学習',
 	'test'		=> 'テスト',
+	'file'		=> '配布資料',
+
 //	'enquete'	=> 'アンケート',
 ];
 
