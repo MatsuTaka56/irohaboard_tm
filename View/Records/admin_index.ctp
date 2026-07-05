@@ -97,18 +97,24 @@
 		<td><?= h($record['User']['name']); ?>&nbsp;</td>
 		<td><a href="javascript:openRecord(<?= h($record['Course']['id']); ?>, <?= h($record['User']['id']); ?>);"><?= h($record['Course']['title']); ?></a></td>
 		<td><?= h($record['Content']['title']); ?>&nbsp;</td>
-		<?php if ($record['Content']['kind'] == 'file') {?>
+		<?php if ($record['Content']['kind'] == 'file') {		// 配布資料?>
 			<td class="ib-col-center" nowrap>-</td><td class="ib-col-center" nowrap>-</td><td class="ib-col-center" nowrap>-</td>
 			<td class="ib-col-center" nowrap>-</td><td class="ib-col-center" nowrap>-</td>
 		<?php } else {?>
-			<td class="ib-col-center"><?= h($record['Record']['score']); ?>&nbsp;</td>
-			<td class="ib-col-center"><?= h($record['Record']['pass_score']); ?>&nbsp;</td>
-			<?php if ($record['Content']['kind'] == 'enquete') {?>
-				<td class="ib-col-center"><a href="javascript:openRecordEnquete(<?= h($record['Content']['id']); ?>, <?= h($record['Record']['id']); ?>);">回答</a></td>
-			<?php } else {?>
+			<?php if ($record['Content']['kind'] == 'test') {		// テスト?>
+				<td class="ib-col-center"><?= h($record['Record']['score']); ?>&nbsp;</td>
+				<td class="ib-col-center"><?= h($record['Record']['pass_score']); ?>&nbsp;</td>
 				<td nowrap class="ib-col-center"><a href="javascript:openTestRecord(<?= h($record['Content']['id']); ?>, <?= h($record['Record']['id']); ?>);"><?= Configure::read('record_result.'.$record['Record']['is_passed']); ?></a></td>
+				<td class="ib-col-center" nowrap>-</td>
+			<?php } else if ($record['Content']['kind'] == 'enquete') {		// (アンケート)?>
+				<td class="ib-col-center"><?= h($record['Record']['score']); ?>&nbsp;</td>
+				<td class="ib-col-center"><?= h($record['Record']['pass_score']); ?>&nbsp;</td>
+				<td class="ib-col-center"><a href="javascript:openRecordEnquete(<?= h($record['Content']['id']); ?>, <?= h($record['Record']['id']); ?>);">回答</a></td>
+				<td class="ib-col-center" nowrap>-</td>
+			<?php } else {		// 学習?>
+				<td class="ib-col-center" nowrap>-</td><td class="ib-col-center" nowrap>-</td><td class="ib-col-center" nowrap>-</td>
+				<td nowrap class="ib-col-center"><?= h(Configure::read('record_understanding.'.$record['Record']['understanding'])); ?>&nbsp;</td>
 			<?php }?>
-			<td nowrap class="ib-col-center"><?= h(Configure::read('record_understanding.'.$record['Record']['understanding'])); ?>&nbsp;</td>
 			<td class="ib-col-center"><?= h(Utils::getHNSBySec($record['Record']['study_sec'])); ?>&nbsp;</td>
 		<?php }?>
 		<td class="ib-col-date"><?= h(Utils::getYMDHN($record['Record']['created'])); ?>&nbsp;</td>
