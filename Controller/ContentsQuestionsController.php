@@ -376,19 +376,16 @@ class ContentsQuestionsController extends AppController
 		// 問題情報を取得
 		$question = $this->ContentsQuestion->get($question_id);
 		
-		if($this->ContentsQuestion->delete())
-		{
-			$this->Flash->success(__('問題が削除されました'));
-			return $this->redirect([
-				'controller' => 'contents_questions',
-				'action' => 'index',
-				$question['ContentsQuestion']['content_id']
-			]);
-		}
-		else
-		{
-			$this->Flash->error(__('The contents question could not be deleted. Please, try again.'));
-		}
+		$this->ContentsQuestion->deleteContentsQuestion($question_id);
+		
+		$this->Flash->success(__('問題が削除されました'));
+		
+		return $this->redirect([
+			'controller' => 'contents_questions',
+			'action' => 'index',
+			$question['ContentsQuestion']['content_id']
+		]);
+		
 		return $this->redirect(['action' => 'index']);
 	}
 

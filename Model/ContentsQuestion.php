@@ -108,4 +108,26 @@ class ContentsQuestion extends AppModel
 		
 		return $sort_no;
 	}
+
+	/**
+	 * 問題コンテンツの削除
+	 * 
+	 * @param int $question_id 削除する問題コンテンツのID
+	 */
+	public function deleteContentsQuestion($question_id)
+	{
+		$params = [
+			'question_id' => $question_id
+		];
+		
+		// テスト問題の学習履歴の削除
+		$sql = "DELETE FROM ib_records_questions WHERE question_id = :question_id;";
+		$this->query($sql, $params);
+
+		// テスト問題の削除
+		$sql = "DELETE FROM ib_contents_questions WHERE id = :question_id;";
+		$this->query($sql, $params);
+		
+	}
+
 }

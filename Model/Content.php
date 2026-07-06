@@ -203,4 +203,33 @@ EOF;
 		
 		return $sort_no;
 	}
+
+	/**
+	 * コンテンツの削除
+	 * 
+	 * @param int $content_id 削除するコンテンツのID
+	 */
+	public function deleteContent($content_id)
+	{
+		$params = [
+			'content_id' => $content_id
+		];
+		
+		// テスト問題の学習履歴の削除
+		$sql = "DELETE FROM ib_records_questions WHERE record_id IN (SELECT id FROM ib_records WHERE content_id = :content_id);";
+		$this->query($sql, $params);
+
+		// 学習履歴の削除
+		$sql = "DELETE FROM ib_records WHERE content_id = :content_id;";
+		$this->query($sql, $params);
+
+		// テスト問題の削除
+		$sql = "DELETE FROM ib_contents_questions WHERE content_id = :content_id;";
+		$this->query($sql, $params);
+
+		// コンテンツの削除
+		$sql = "DELETE FROM ib_contents WHERE id = :content_id;";
+		$this->query($sql, $params);
+		
+	}
 }

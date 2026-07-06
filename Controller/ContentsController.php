@@ -267,17 +267,9 @@ class ContentsController extends AppController
 		
 		$this->request->allowMethod('post', 'delete');
 		
-		if($this->Content->delete())
-		{
-			// コンテンツに紐づくテスト問題も削除
-			$this->fetchTable('ContentsQuestion')->deleteAll(['ContentsQuestion.content_id' => $content_id], false);
-			$this->request->allowMethod('post', 'delete');
-			$this->Flash->success(__('コンテンツが削除されました'));
-		}
-		else
-		{
-			$this->Flash->error(__('The content could not be deleted. Please, try again.'));
-		}
+		$this->Content->deleteContent($content_id);
+		
+		$this->Flash->success(__('コンテンツが削除されました'));
 		
 		return $this->redirect(['action' => 'index', $content['Course']['id']]);
 	}

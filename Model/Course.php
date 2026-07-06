@@ -126,8 +126,16 @@ EOF;
 			'course_id' => $course_id
 		];
 		
+		// テスト問題の学習履歴の削除
+		$sql = "DELETE FROM ib_records_questions WHERE record_id IN (SELECT id FROM ib_records WHERE content_id IN (SELECT id FROM ib_contents WHERE course_id = :course_id));";
+		$this->query($sql, $params);
+
+		// 学習履歴の削除
+		$sql = "DELETE FROM ib_records WHERE content_id IN (SELECT id FROM ib_contents WHERE course_id = :course_id);";
+		$this->query($sql, $params);
+		
 		// テスト問題の削除
-		$sql = "DELETE FROM ib_contents_questions WHERE content_id IN (SELECT id FROM  ib_contents WHERE course_id = :course_id);";
+		$sql = "DELETE FROM ib_contents_questions WHERE content_id IN (SELECT id FROM ib_contents WHERE course_id = :course_id);";
 		$this->query($sql, $params);
 		
 		// コンテンツの削除

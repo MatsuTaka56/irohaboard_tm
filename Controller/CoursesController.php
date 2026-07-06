@@ -101,7 +101,9 @@ class CoursesController extends AppController
 		}
 
 		$this->request->allowMethod('post', 'delete');
+
 		$this->Course->deleteCourse($course_id);
+
 		$this->Flash->success(__('コースが削除されました'));
 
 		return $this->redirect(['action' => 'index']);
