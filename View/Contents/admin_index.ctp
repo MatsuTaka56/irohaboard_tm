@@ -97,6 +97,7 @@
 	<tbody>
 	<?php foreach ($contents as $content): ?>
 	<?php
+		$content['Content']['mode'] = '';
 		switch($content['Content']['kind'])
 		{
 			case 'test':
