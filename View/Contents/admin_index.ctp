@@ -51,7 +51,7 @@
 			var result = window.confirm(
 				'すでにコンテンツが登録されています。\n'+
 				'これらのコンテンツを置き換えますか？\n'+
-				'置き換えの場合はすべてのコンテンツが削除されます。');
+				'置き換えの場合は、本コースのすべてのコンテンツ、学習履歴が削除されます。');
         	if( result ) {
         		console.log('OKがクリックされました');
 				location.href='<?= Router::url(['action' => 'import', $course['Course']['id']]) ?>';

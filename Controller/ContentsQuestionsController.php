@@ -847,6 +847,10 @@ class ContentsQuestionsController extends AppController
 				}
 				else
 				{
+					// 問題情報を取得
+					$this->request->allowMethod('post', 'delete');
+					$this->ContentsQuestion->deleteRecordImport($content_id);
+
 					$ds->commit();
 					$this->Flash->success(__('インポートが完了しました'));
 					return $this->redirect(['action' => 'index', $content_id]);

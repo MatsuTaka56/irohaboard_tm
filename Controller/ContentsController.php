@@ -1543,6 +1543,10 @@ class ContentsController extends AppController
 				}
 				else
 				{
+					// インポートしたコース関連の学習履歴を取得
+					$this->request->allowMethod('post', 'delete');
+					$this->Content->deleteRecordImport($course_id);
+		
 					$ds->commit();
 					$this->Flash->success(__('インポートが完了しました'));
 					return $this->redirect(['action' => 'index', $course_id]);

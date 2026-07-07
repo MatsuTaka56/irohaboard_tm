@@ -230,6 +230,26 @@ EOF;
 		// コンテンツの削除
 		$sql = "DELETE FROM ib_contents WHERE id = :content_id;";
 		$this->query($sql, $params);
+	}
+
+	/**
+	 * インポートコンテンツの学習履歴を削除
+	 * 
+	 * @param int $course_id インポートしたコースのID
+	 */
+	public function deleteRecordImport($course_id)
+	{
+		$params = [
+			'course_id' => $course_id
+		];
+		
+		// テスト問題の学習履歴の削除
+		$sql = "DELETE FROM ib_records_questions WHERE record_id IN (SELECT id FROM ib_records WHERE content_id IN (SELECT id FROM ib_contents WHERE course_id = :course_id));";
+		$this->query($sql, $params);
+
+		// 学習履歴の削除
+		$sql = "DELETE FROM ib_records WHERE content_id IN (SELECT id FROM ib_contents WHERE course_id = :course_id);";
+		$this->query($sql, $params);
 		
 	}
 }

@@ -48,11 +48,11 @@
 	// 問題コンテンツのインポートに関する確認
 	function confirmImport()
 	{
-		<?php	if(!empty($contents)){	?>
+		<?php	if(!empty($contentsQuestions)){	?>
 			var result = window.confirm(
 				'すでに問題が登録されています。\n'+
 				'これらの問題を置き換えますか？\n'+
-				'置き換えの場合はすべての問題が削除されます。');
+				'置き換えの場合は、本コンテンツのすべての問題、学習履歴が削除されます。');
         	if( result ) {
         		console.log('OKがクリックされました');
 				location.href='<?= Router::url(['action' => 'import', $content['Content']['id']]) ?>';

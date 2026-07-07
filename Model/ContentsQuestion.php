@@ -127,7 +127,26 @@ class ContentsQuestion extends AppModel
 		// テスト問題の削除
 		$sql = "DELETE FROM ib_contents_questions WHERE id = :question_id;";
 		$this->query($sql, $params);
+	}
+
+	/**
+	 * インポート問題コンテンツの学習履歴を削除
+	 * 
+	 * @param int $content_id インポートした問題コンテンツのID
+	 */
+	public function deleteRecordImport($content_id)
+	{
+		$params = [
+			'content_id' => $content_id
+		];
 		
+		// テスト問題の学習履歴の削除
+		$sql = "DELETE FROM ib_records_questions WHERE record_id IN (SELECT id FROM ib_records WHERE content_id = :content_id);";
+		$this->query($sql, $params);
+
+		// 学習履歴の削除
+		$sql = "DELETE FROM ib_records WHERE content_id = :content_id;";
+		$this->query($sql, $params);
 	}
 
 }
