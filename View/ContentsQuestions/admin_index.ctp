@@ -97,7 +97,7 @@
 		<th width="40" nowap><?= __('得点'); ?></th>
 		<th class="ib-col-date"><?= __('作成日時'); ?></th>
 		<th class="ib-col-date"><?= __('更新日時'); ?></th>
-		<th class="actions text-center"><?= __('Actions'); ?></th>
+		<th class="ib-col-action"><?= __('Actions'); ?></th>
 	</tr>
 	</thead>
 	<tbody>
@@ -110,7 +110,7 @@
 		<td><?= h($contentsQuestion['ContentsQuestion']['score']); ?>&nbsp;</td>
 		<td class="ib-col-date"><?= Utils::getYMDHN($contentsQuestion['ContentsQuestion']['created']); ?>&nbsp;</td>
 		<td class="ib-col-date"><?= Utils::getYMDHN($contentsQuestion['ContentsQuestion']['modified']); ?>&nbsp;</td>
-		<td class="actions text-center">
+		<td class="ib-col-action">
 			<button type="button" class="btn btn-success" onclick="location.href='<?= Router::url(['action' => 'edit', $contentsQuestion['Content']['id'], $contentsQuestion['ContentsQuestion']['id']]) ?>'">編集</button>
 			<?= $this->Form->postLink(__('複製'), ['action' => 'copy', $contentsQuestion['Content']['id'], $contentsQuestion['ContentsQuestion']['id']], ['class'=>'btn btn-info']);?>
 			<?php if($loginedUser['role'] == 'admin') {?>

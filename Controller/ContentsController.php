@@ -727,6 +727,8 @@ class ContentsController extends AppController
 			$sort_no++;
 		}
 		
+		$this->Flash->success(__('コンテンツの複製が完了しました。'));
+
 		return $this->redirect(['action' => 'index',$course_id]);
 	}
 

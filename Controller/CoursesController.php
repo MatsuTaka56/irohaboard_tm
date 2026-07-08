@@ -123,4 +123,88 @@ class CoursesController extends AppController
 			return "OK";
 		}
 	}
+
+	/**
+	 * コースのコピー
+	 * @param int $course_id コピーするコースのID
+	 */
+	public function admin_copy($course_id)
+	{
+		$this->request->allowMethod('post');
+		
+		// コピー元のコース情報を抽出(Course, Content)
+		$data = $this->Course->get($course_id);
+		// コピー先コースのコースidを設定
+		$row  = $this->Course->find()
+			->select(['MAX(Course.id) as max_id'])
+			->first();		
+		$new_course_id = $row[0]['max_id'] + 1;
+		// コピー先のコース情報を設定
+		$data['Course']['id'] = $new_course_id;
+		$data['Course']['created'] = null;
+		$data['Course']['modified'] = null;
+		$data['Course']['opened'] = null;
+		$data['Course']['deleted'] = null;
+		$data['Course']['title'] .= 'の複製';
+
+		// コピー先コースに登録する先頭のコンテンツidを設定
+		$row = $this->fetchTable('Contents')->find()
+			->select(['MAX(Contents.id) as max_id'])
+			->first();
+		$new_content_id = $row[0]['max_id'] + 1;
+		// コピー先コースにコンテンツを登録
+		foreach($data['Content'] as $content_for_copy)
+		{
+			$source_id = $content_for_copy['id'];
+			$content_for_copy['id']			= $new_content_id;
+			$content_for_copy['created']	= null;
+			$content_for_copy['modified']	= null;
+			$content_for_copy['course_id'] = $new_course_id;
+
+			$this->fetchTable('Contents')->validate = null;			
+			$this->fetchTable('Contents')->create($content_for_copy);
+			$this->fetchTable('Contents')->save();
+
+			// テストコンテンツの場合、テスト問題をコピー
+			if ($content_for_copy['kind'] == 'test')
+			{
+				// テスト問題を抽出
+				$contentsQuestions = $this->fetchTable('ContentsQuestion')->find()
+					->where(['content_id' => $source_id])
+					->order('ContentsQuestion.sort_no asc')
+					->all();
+		
+				foreach($contentsQuestions as $contentsQuestion)
+				{
+					$contentsQuestion['ContentsQuestion']['id']			= null;
+					$contentsQuestion['ContentsQuestion']['created']	= null;
+					$contentsQuestion['ContentsQuestion']['modified']	= null;
+					$contentsQuestion['ContentsQuestion']['content_id']	= $new_content_id;
+					$contentsQuestion['ContentsQuestion']['sort_no']	= 0;
+			
+					$this->fetchTable('ContentsQuestion')->validate = null;			
+					$this->fetchTable('ContentsQuestion')->create($contentsQuestion);
+					$this->fetchTable('ContentsQuestion')->save();
+				}
+			}
+			$new_content_id++;
+		}
+		$this->Course->save($data['Course']);
+
+		// コンテンツに関連するファイル類をコピー
+		$source_folder_path = ROOT.DS.APP_DIR.DS.'files'.DS.'course_'.$course_id;
+		$destination_folder_path = ROOT.DS.APP_DIR.DS.'files'.DS.'course_'.$new_course_id;
+		if (file_exists($source_folder_path)) {
+			$copy_cmd = 'xcopy ' . $source_folder_path . ' ' . $destination_folder_path . ' /Y /I';
+			exec($copy_cmd, $out_mes, $return);
+			if ($return != 0){ //0 or それ以外
+				$this->Flash->success(__('ファイルの複写が失敗しました。'));
+			}
+		}
+
+		$this->Flash->success(__('コースの複製が完了しました。'));
+		
+		return $this->redirect(['action' => 'index']);
+	}
+
 }

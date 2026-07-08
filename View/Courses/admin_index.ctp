@@ -76,6 +76,7 @@
 		<td class="ib-col-date"><?= h(Utils::getYMDHN($course['Course']['modified'])); ?>&nbsp;</td>
 		<td class="ib-col-action">
 			<button type="button" class="btn btn-success" onclick="location.href='<?= Router::url(['action' => 'edit', $course['Course']['id']]) ?>'"><?= __('編集')?></button>
+			<?= $this->Form->postLink(__('複製'), ['action' => 'copy', $course['Course']['id']], ['class'=>'btn btn-info']);?>
 			<?php if($loginedUser['role'] == 'admin') {?>
 			<?= $this->Form->postLink(__('削除'), ['action' => 'delete', $course['Course']['id']], ['class'=>'btn btn-danger'], 
 				__('[%s] を削除してもよろしいですか?', $course['Course']['title']));?>

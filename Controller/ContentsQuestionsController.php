@@ -919,6 +919,7 @@ class ContentsQuestionsController extends AppController
 		$this->fetchTable('ContentsQuestion')->create($contentsQuestion);
 		$this->fetchTable('ContentsQuestion')->save();
 			
+		$this->Flash->success(__('問題の複製が完了しました。'));
 		
 		return $this->redirect(['action' => 'index',$content_id]);
 	}
