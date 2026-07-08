@@ -145,5 +145,13 @@ EOF;
 		// コースの削除
 		$sql = "DELETE FROM ib_courses WHERE id = :course_id;";
 		$this->query($sql, $params);
+
+		// 関連ファイル類の削除
+		$folder_path = ROOT.DS.APP_DIR.DS.'files'.DS.'course_'.$course_id;
+		$rmdir_cmd = 'rmdir  /s /q ' . $folder_path;
+		exec($rmdir_cmd, $out_mes, $return);
+		if ($return != 0){ //0 or それ以外
+			//$this->Flash->success(__('ファイルの削除が失敗しました。'));
+		}
 	}
 }
