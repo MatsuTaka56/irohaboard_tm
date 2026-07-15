@@ -447,95 +447,23 @@ class ContentsQuestionsController extends AppController
 		$this->autoRender = false;
 		Configure::write('debug', 0);
 
-		//ファイルエクスポート用のzipオブジェクトを定義
+		// エクスポート用のzipオブジェクト、CSVファイル、作業用一時フォルダなどを定義
 		$zip_obj = new ZipArchive;
 		$tmp_dir = ROOT.DS.APP_DIR.DS.'files'.'/tmp';
 		$files_name = $course_name.'_'.$content_name.'_files_'.date('Ymd').'.zip';
 		$files = array();
 		$csv_name = $course_name.'_'.$content_name.'_csv_'.date('Ymd').'.csv';
 		$exp_name = $course_name.'_'.$content_name.'_exp_'.date('Ymd').'.zip';
-
 		if(!is_dir($tmp_dir))
 		{
 			mkdir($tmp_dir, 0755);
 		}
 
-		$fp = fopen($tmp_dir.DS.$csv_name,'w');
-
-		$header_list = Configure::read('export_content_question_header');
-		//------------------------------//
-		//	ヘッダー行の作成			//
-		//------------------------------//
-		$header = array();
-		foreach ($header_list as $key => $val)
-		{
-			$header[] = __($val.' ');
-		}
-		
-		// ヘッダー行をCSV出力
-		mb_convert_variables('SJIS-win', 'UTF-8', $header);
-		fputcsv($fp, $header);
-		
-		//------------------------------//
-		//	問題情報の取得			//
-		//------------------------------//
-		
-		// パフォーマンスの改善の為、一定件数に分割してデータを取得
-		$limit      = 500;
-		$contentsQuestion_count = $this->ContentsQuestion->find()
-				->where(['content_id' => $content_id])
-				->count();	// テスト問題数を取得
-		$page_size  = ceil($contentsQuestion_count / $limit);	// ページ数（テスト問題数 / ページ単位）
-		
-		// ページ単位でテスト問題を取得
-		for($page=1; $page <= $page_size; $page++)
-		{
-			// テスト問題情報をページ単位に取得
-			$this->ContentsQuestion->recursive = 1;
-			$rows = $this->ContentsQuestion->find()
-				->where(['content_id' => $content_id])
-				->limit($limit)
-				->page($page)
-				->all();
-			
-			foreach($rows as $row)
-			{
-				//------------------------------//
-				//	出力するデータを作成		//
-				//------------------------------//
-				// 出力行を作成
-				$line = array();
-				foreach ($header_list as $key => $val)
-				{
-					$line[] = $row['ContentsQuestion'][$key];
-				}
-
-				// CSV出力
-				mb_convert_variables('SJIS-win', 'UTF-8', $line);
-				fputcsv($fp, $line);
-
-				// 問題文中のファイル名を抽出
-				if(preg_match_all('/file_image\/(.+?)\/\d+\"/', $row['ContentsQuestion']['body'], $rich_images) > 0)
-				{
-					foreach($rich_images[1] as $image)
-					{
-						array_push($files, $image);
-					}
-				}
-				
-				// 解説文中のファイル名を抽出
-				if(preg_match_all('/file_image\/(.+?)\/\d+\"/', $row['ContentsQuestion']['explain'], $rich_images) > 0)
-				{
-					foreach($rich_images[1] as $image)
-					{
-						array_push($files, $image);
-					}
-				}
-
-			}
-		}
-		
-		fclose($fp);
+		// コンテンツ情報を出力（１テストコンテンツ）
+		$files = $this->fetchTable('Content')->exportContent($content_id, 'content', $tmp_dir.DS.$csv_name, $files, 'w');
+		// テスト情報を出力（１テストコンテンツの全テスト分）
+		$ids_content = [ $content_id ];
+		$files = $this->ContentsQuestion->exportQuestion($ids_content, $tmp_dir.DS.$csv_name, $files);
 
 		// 問題文、解説文中のimageファイルがあれば、zipにまとめる
 		if(count($files) != 0)
@@ -554,19 +482,21 @@ class ContentsQuestionsController extends AppController
 		}
 
 		// 全体をzipでまとめて、ダウンロードする
+		// エクスポート用ZIPファイルをオープン
 		$result = $zip_obj->open($tmp_dir.DS.$exp_name, ZIPARCHIVE::CREATE | ZIPARCHIVE::OVERWRITE);
 		if(!$result){
 			$this->Flash->error(__('ZIPファイルがオープンできません'));
 			$this->set(compact('err_msg'));
 			return;
 		}
-		
+		// エクスポート用ZIPファイルにCSVファイルを追加		
 		$zip_obj->addFile($tmp_dir.DS.$csv_name, $csv_name);
+		// エクスポート用ZIPファイルに関連ファイル類のZIPファイルを追加
 		if(count($files) != 0)
 		{
 			$zip_obj->addFile($tmp_dir.DS.$files_name, $files_name);
 		}
-
+		// エクスポート用ZIPファイルをクローズ
 		$zip_obj->close();
 		//ダウンロード
 		header('Content-Type: application/force-download;');
@@ -579,12 +509,10 @@ class ContentsQuestionsController extends AppController
 			$this->set(compact('err_msg'));
 			return;
 		}
-
-		//tmpフォルダ内のcsv、zipファイルを削除
+		// 作業用一時フォルダ内のcsv、zipファイルを削除
 		unlink($tmp_dir.DS.$csv_name);
 		unlink($tmp_dir.DS.$files_name);
 		unlink($tmp_dir.DS.$exp_name);
-
 	}
 
 	/**

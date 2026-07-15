@@ -252,4 +252,136 @@ EOF;
 		$this->query($sql, $params);
 		
 	}
+		
+	/**
+	 * コンテンツ情報の出力
+	 * 
+	 * @param int		$id		出力するコースまたはコンテンツのID
+	 * @param string	$class	出力情報の区分(course/content)
+	 * @param string	$fp_csv	出力するCSVのファイルパス
+	 * @param array		$files	出力するファイルを格納するフォルダパス
+	 * @return array	$files 
+	*/
+	public function exportContent($id, $class, $fp_csv, $files, $csv_mode = 'a')
+	{
+		$fp = fopen($fp_csv, $csv_mode);
+
+		//------------------------------//
+		//	コンテンツ情報の出力          //
+		//------------------------------//
+		$section = array();
+		$section[] = __('#コンテンツ');
+		mb_convert_variables('SJIS-win', 'UTF-8', $section);
+		fputcsv($fp, $section);
+
+		//	コンテンツヘッダー行を作成
+		$header_list = Configure::read('export_content_header');
+		$header = array();
+		foreach ($header_list as $key => $val)
+		{
+			$header[] = __($val.' ');
+		}
+		// ヘッダー行をCSV出力
+		mb_convert_variables('SJIS-win', 'UTF-8', $header);
+		fputcsv($fp, $header);
+		
+		// パフォーマンスの改善の為、処理を一定件数に分割（ページ数の算出）
+		$limit      = 500;
+		if ($class == 'course') 
+		{	
+			$content_count = $this->find()
+				->where(['course_id' => $id])
+				->count();	// コンテンツ数を取得
+			$page_size  = ceil($content_count / $limit);	// ページ数（コンテンツ数 / ページ単位）
+		}
+		else 
+		{
+			$page_size = 1;
+		}
+		// ページ単位でコンテンツを取得->出力
+		for($page=1; $page <= $page_size; $page++)
+		{
+			// ページ単位でコンテンツ情報を取得
+			$this->recursive = 1;
+			if ($class == 'course') 
+			{	
+				$rows = $this->find()
+					->where(['course_id' => $id])
+					->limit($limit)
+					->page($page)
+					->order('Content.sort_no asc')
+					->all();
+			}
+			else
+			{
+				$rows = $this->find()
+					->where(['Content.id' => $id])
+					->all();
+			}
+			// コンテンツ情報を出力
+			foreach($rows as $row)
+			{
+				// 出力行を作成
+				$line = array();
+				foreach ($header_list as $key => $val)
+				{
+					switch ($key) {
+						case 'kind':
+							$line[] = Configure::read('content_kind.'.$row['Content']['kind']);
+							break;
+						case 'status':
+							$line[] = Configure::read('content_status.'.$row['Content']['status']);
+							break;
+						case 'wrong_mode':
+							if($row['Content']['kind'] != 'test')
+							{
+								$line[] = "";
+							}
+							else
+							{
+								$line[] = $row['Content'][$key] + 1;
+							}
+							break;
+						case 'mode':
+							if(in_array($row['Content']['kind'],['html', 'url', 'movie', 'pict']))
+							{
+								$line[] = Configure::read('content_mode.'.$row['Content']['wrong_mode']);
+							}
+							else
+							{
+								$line[] = "";
+							}
+							break;
+						default:
+							$line[] = $row['Content'][$key];
+					}
+				}
+
+				// CSV出力
+				mb_convert_variables('SJIS-win', 'UTF-8', $line);
+				fputcsv($fp, $line);
+
+				// 画像、動画、ファイルの場合、ファイル名を抽出
+				if(in_array($row['Content']['kind'],['file', 'movie', 'pict']))
+				{
+					array_push($files, $row['Content']['file_name']);
+				}
+				// リッチテキストの場合、imageファイル名を抽出
+				else if($row['Content']['kind'] == 'html')
+				{
+					if(preg_match_all('/file_image\/(.+?)\/\d+\"/', $row['Content']['body'], $rich_images) > 0)
+					{
+						foreach($rich_images[1] as $image)
+						{
+							array_push($files, $image);
+						}
+					}
+				}
+			}
+		}
+
+		fclose($fp);
+
+		return $files;
+	}
 }

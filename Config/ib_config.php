@@ -199,7 +199,17 @@ $config['open_link_same_window'] = false;
 if (!defined('APP_NAME')) {
 	define('APP_NAME', 'iroha Board');
 }
-
+// コースExport用ヘッダ
+$config['export_course_header'] = [
+	'title' => 'コース名',
+	'introduction' => 'コース紹介',
+	'comment' => '備考',
+	'id' => 'ID',
+	'opened' => 'Opened',
+	'created' => '作成日時',
+	'modified' => '更新日時',
+	'deleted' => '削除日時',
+];
 // コンテンツExport用ヘッダ
 $config['export_content_header'] = [
 	'title' => 'コンテンツ名',
@@ -214,6 +224,7 @@ $config['export_content_header'] = [
 	'mode' => 'コンテンツモード',
 	'status' => 'ステータス',
 	'comment' => '備考',
+	'id' => 'ID',
 	'opened' => 'Opened',
 	'created' => '作成日時',
 	'modified' => '更新日時',
@@ -233,6 +244,7 @@ $config['import_content_header'] = [
 	'コンテンツモード' => 'mode',
 	'ステータス' => 'status',
 	'備考' => 'comment',
+	'id' => 'ID',
 ];
 // テスト問題コンテンツのExport用ヘッダ
 $config['export_content_question_header'] = [
@@ -244,6 +256,7 @@ $config['export_content_question_header'] = [
 	'score' => '得点',
 	'explain' => '解説',
 	'comment' => '備考',
+	'content_id' => 'ID',
 	'created' => '作成日時',
 	'modified' => '更新日時',
 ];
@@ -257,4 +270,5 @@ $config['import_content_question_header'] = [
 	'得点' => 'score',
 	'解説' => 'explain',
 	'備考' => 'comment',
+	'content_id' => 'ID',
 ];

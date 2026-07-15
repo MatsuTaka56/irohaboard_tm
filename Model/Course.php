@@ -15,7 +15,7 @@ App::uses('AppModel', 'Model');
  *
  * @property Group $Group
  * @property Content $Content
- * @property ContentsQuestion $ContentsQuestion
+ * @property ContentsQuestion $contentsQuestion
  * @property Record $Record
  * @property User $User
  */
@@ -154,4 +154,50 @@ EOF;
 			//$this->Flash->success(__('ファイルの削除が失敗しました。'));
 		}
 	}
+		
+	/**
+	 * コース情報の出力
+	 * 
+	 * @param int $course_id 出力するコースのID
+	 * @param int $fp_csv    出力するCSVのファイルパス
+	 */
+	public function exportCourse($course_id, $fp_csv)
+	{
+		$fp = fopen($fp_csv,'w');
+
+		//------------------------------//
+		//	コース情報の出力             //
+		//------------------------------//
+		$section = array();
+		$section[] = __('#コース');
+		mb_convert_variables('SJIS-win', 'UTF-8', $section);
+		fputcsv($fp, $section);
+
+		//	コースヘッダー行の作成
+		$header_list = Configure::read('export_course_header');
+		$header = array();
+		foreach ($header_list as $key => $val)
+		{
+			$header[] = __($val.' ');
+		}
+		// ヘッダー行をCSV出力
+		mb_convert_variables('SJIS-win', 'UTF-8', $header);
+		fputcsv($fp, $header);
+		
+		// コース情報出力行を作成
+		$course =  $this->find()
+			->where(['Course.id' => $course_id])
+			->all();
+		$line = array();
+		foreach ($header_list as $key => $val)
+		{
+			$line[] = $course[0]['Course'][$key];
+		}
+		// CSV出力
+		mb_convert_variables('SJIS-win', 'UTF-8', $line);
+		fputcsv($fp, $line);
+		
+		fclose($fp);
+	}
+
 }

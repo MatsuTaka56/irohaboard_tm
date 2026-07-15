@@ -1026,123 +1026,32 @@ class ContentsController extends AppController
 		$this->autoRender = false;
 		Configure::write('debug', 0);
 
-		//ファイルエクスポート用のzipオブジェクトを定義
+		// エクスポート用のzipオブジェクト、CSVファイル、作業用一時フォルダなどを定義
 		$zip_obj = new ZipArchive;
 		$tmp_dir = ROOT.DS.APP_DIR.DS.'files'.'/tmp';
 		$files_name = $course_name.'_files_'.date('Ymd').'.zip';
 		$files = array();
 		$csv_name = $course_name.'_csv_'.date('Ymd').'.csv';
 		$exp_name = $course_name.'_exp_'.date('Ymd').'.zip';
-
 		if(!is_dir($tmp_dir))
 		{
 			mkdir($tmp_dir, 0755);
 		}
-
-		$fp = fopen($tmp_dir.DS.$csv_name,'w');
 		
-		$header_list = Configure::read('export_content_header');
-		//------------------------------//
-		//	ヘッダー行の作成			//
-		//------------------------------//
-		$header = array();
-		foreach ($header_list as $key => $val)
+		// コース情報を出力（１コース）
+		$this->fetchTable('Course')->exportCourse($course_id, $tmp_dir.DS.$csv_name);
+		// コンテンツ情報を出力（１コースの全コンテンツ）
+		$files = $this->Content->exportContent($course_id, 'course', $tmp_dir.DS.$csv_name, $files);
+		// テスト情報を出力（１コース内の全テストコンテンツ分）
+		$query = $this->Content->find()
+						->select(['id'])
+						->where(['course_id' => $course_id, 'kind' => 'test'])
+						->all();
+    	$ids_content = Hash::extract($query, '{n}.Content.id');		// コンテンツIDリストを作成
+		if (count($ids_content) != 0)
 		{
-			$header[] = __($val.' ');
+			$files = $this->fetchTable('ContentsQuestion')->exportQuestion($ids_content, $tmp_dir.DS.$csv_name, $files);
 		}
-		
-		// ヘッダー行をCSV出力
-		mb_convert_variables('SJIS-win', 'UTF-8', $header);
-		fputcsv($fp, $header);
-		
-		//------------------------------//
-		//	コンテンツ情報の取得			//
-		//------------------------------//
-		
-		// パフォーマンスの改善の為、一定件数に分割してデータを取得
-		$limit      = 500;
-		$content_count = $this->Content->find()
-			->where(['course_id' => $course_id])
-			->count();	// コンテンツ数を取得
-		$page_size  = ceil($content_count / $limit);	// ページ数（ユーザ数 / ページ単位）
-		
-		// ページ単位でコンテンツを取得
-		for($page=1; $page <= $page_size; $page++)
-		{
-			// コンテンツ情報を取得
-			$this->Content->recursive = 1;
-			$rows = $this->Content->find()
-				->where(['course_id' => $course_id])
-				->limit($limit)
-				->page($page)
-				->order('Content.sort_no asc')
-				->all();
-			
-			foreach($rows as $row)
-			{
-				//------------------------------//
-				//	出力するデータを作成		//
-				//------------------------------//
-				// 出力行を作成
-				$line = array();
-				foreach ($header_list as $key => $val)
-				{
-					switch ($key) {
-						case 'kind':
-							$line[] = Configure::read('content_kind.'.$row['Content']['kind']);
-							break;
-						case 'status':
-							$line[] = Configure::read('content_status.'.$row['Content']['status']);
-							break;
-						case 'wrong_mode':
-							if($row['Content']['kind'] != 'test')
-							{
-								$line[] = "";
-							}
-							else
-							{
-								$line[] = $row['Content'][$key] + 1;
-							}
-							break;
-						case 'mode':
-							if(in_array($row['Content']['kind'],['html', 'url', 'movie', 'pict']))
-							{
-								$line[] = Configure::read('content_mode.'.$row['Content']['wrong_mode']);
-							}
-							else
-							{
-								$line[] = "";
-							}
-							break;
-						default:
-							$line[] = $row['Content'][$key];
-					}
-				}
-
-				// CSV出力
-				mb_convert_variables('SJIS-win', 'UTF-8', $line);
-				fputcsv($fp, $line);
-
-				// 画像、動画、ファイルの場合、ファイル名を抽出
-				if(in_array($row['Content']['kind'],['file', 'movie', 'pict']))
-				{
-					array_push($files, $row['Content']['file_name']);
-				}
-				// リッチテキストの場合、imageファイル名を抽出
-				else if($row['Content']['kind'] == 'html')
-				{
-					if(preg_match_all('/file_image\/(.+?)\/\d+\"/', $row['Content']['body'], $rich_images) > 0)
-					{
-						foreach($rich_images[1] as $image)
-						{
-							array_push($files, $image);
-						}
-					}
-				}
-			}
-		}
-		
-		fclose($fp);
 		
 		// 画像、動画、リッチテキストのimageファイルがあれば、zipにまとめる
 		if(count($files) != 0)
@@ -1161,21 +1070,24 @@ class ContentsController extends AppController
 		}
 
 		// 全体をzipでまとめて、ダウンロードする
+		// エクスポート用ZIPファイルをオープン
 		$result = $zip_obj->open($tmp_dir.DS.$exp_name, ZIPARCHIVE::CREATE | ZIPARCHIVE::OVERWRITE);
-		if(!$result){
+		if(!$result)
+		{
 			$this->Flash->error(__('ZIPファイルがオープンできません'));
 			$this->set(compact('err_msg'));
 			return;
 		}
-		
+		// エクスポート用ZIPファイルにCSVファイルを追加
 		$zip_obj->addFile($tmp_dir.DS.$csv_name, $csv_name);
+		// エクスポート用ZIPファイルに関連ファイル類のZIPファイルを追加
 		if(count($files) != 0)
 		{
 			$zip_obj->addFile($tmp_dir.DS.$files_name, $files_name);
 		}
-
+		// エクスポート用ZIPファイルをクローズ
 		$zip_obj->close();
-		//ダウンロード
+		// ダウンロード
 		header('Content-Type: application/force-download;');
 		header('Content-Length: '.filesize($tmp_dir.DS.$exp_name));
 		header('Content-Disposition: attachment; filename="'.$exp_name.'"');
@@ -1186,8 +1098,7 @@ class ContentsController extends AppController
 			$this->set(compact('err_msg'));
 			return;
 		}
-
-		//tmpフォルダ内のcsv、zipファイルを削除
+		// 作業用一時フォルダ内のcsv、zipファイルを削除
 		unlink($tmp_dir.DS.$csv_name);
 		unlink($tmp_dir.DS.$files_name);
 		unlink($tmp_dir.DS.$exp_name);
