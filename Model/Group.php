@@ -14,7 +14,7 @@ App::uses('AppModel', 'Model');
  * Group Model
  *
  * @property Content $Content
- * @property ContentsQuestion $ContentsQuestion
+ * @property ContentsQuestion $contentsQuestion
  * @property Course $Course
  * @property Record $Record
  * @property User $User
