@@ -712,7 +712,8 @@ form .required .control-label:after
 	text-align			: center;
 }
 
-.ib-table-csv
+.ib-table-csv,
+.ib-table-import
 {
 	width				: 90%;
 }
@@ -722,6 +723,14 @@ form .required .control-label:after
 	border				: 1px solid;
 	min-width			: 100px;
 	padding				: 5px;
+}
+
+.ib-table-import th
+{
+	border				: 1px solid;
+	/*min-width			: 100px;*/
+	padding				: 5px;
+	font-size			: 11px;
 }
 
 /* start メニューの自動ボタン化を抑止 */
