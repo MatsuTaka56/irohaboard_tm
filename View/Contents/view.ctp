@@ -73,6 +73,11 @@
 			$body = $content['Content']['body'];
 			//$body = str_replace('src="/uploads/', 'src="'.Router::url(['controller' => 'contents', 'action' => 'file_image']).'/', $body);
 			break;
+		case 'label': // ラベルコンテンツ
+			$body = h($content['Content']['title']);
+			$body = '<div style="display:grid; place-items:center; height:100vh; font-size:4rem; font-weight:bold;">'.h($content['Content']['title']).'</div>';
+			$body = nl2br($body);
+			break;
 	}
 ?>
 <div class="content-view">
@@ -85,11 +90,11 @@
 		//
 		$mess_next_page = "コンテンツ一覧";
 		$button_message = "戻るを選択した場合は学習履歴は残りません。";
-		if ($next_page == 1) {
+		if ($next_page != 0) {
 			$button_message = "次、".$button_message;
 			$mess_next_page = "次ページ";
 		}
-		if ($prev_page == 1) {
+		if ($prev_page != 0) {
 			$button_message = "前、".$button_message;
 		}
 	?>
