@@ -177,9 +177,9 @@ $is_admin_record = $this->isAdminPage() && $this->isRecordPage();
 		
 		//debug($content);
 		?>
-		<?php if($content['Content']['kind'] == 'label') { // ラベルの場合、タイトルのみ表示 ?>
+		<?php if($content['Content']['kind'] == 'label') { // ラベルの場合、タイトル画面（仕切り画面）へ ?>
 		<tr>
-			<td colspan="8" class="content-label"><?= h($content['Content']['title']); ?>&nbsp;</td>
+			<td colspan="8" class="content-label"><?= $title_link; ?>&nbsp;</td>
 		</tr>
 		<?php }else if($kind == '仕切り'){?>
 		<tr>
