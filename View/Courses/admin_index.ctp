@@ -50,6 +50,8 @@
 <div class="admin-courses-index">
 	<div class="ib-page-title"><?= __('コース一覧'); ?></div>
 	<div class="buttons_container">
+		<button type="button" class="btn btn-primary btn-import" onclick="location.href='<?= Router::url(['action' => 'import']) ?>'" 
+			 title="CSVファイルに定義したコース情報、コンテンツ情報、テスト問題情報、&#13;&#10;およびZIPファイルにまとめた関連ファイルを追加する">インポート</button>
 		<button type="button" class="btn btn-primary btn-add" onclick="location.href='<?= Router::url(['action' => 'add']) ?>'">+ 追加</button>
 	</div>
 
