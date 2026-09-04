@@ -141,6 +141,9 @@ $config['demo_mode'] = false;
 $config['demo_login_id'] = "demo001";
 $config['demo_password'] = "pass";
 
+// ログイン状態保持（Remember Me）トークンの有効日数
+$config['remember_token_expired_days'] = 14;
+
 // フォームのスタイル(BoostCake)の基本設定
 $config['form_defaults'] = [
 	'inputDefaults' => [
@@ -211,6 +214,9 @@ $config['import_course_count'] = 20;
 
 $config['show_admin_link'] = false;
 $config['open_link_same_window'] = false;
+
+// インストーラー・アップデータへのアクセス拒否 (true : 拒否, false : 許可)
+$config['deny_install_update_access'] = false;
 
 // webroot/index.php でアプリケーション名が設定されていない場合、ここで設定
 if (!defined('APP_NAME')) {
