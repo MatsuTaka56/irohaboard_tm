@@ -78,9 +78,12 @@
 	</div>
 	<div class="ib-page-title"><?= __('コンテンツ一覧'); ?></div>
 	<div class="buttons_container">
-		<button type="button" class="btn btn-primary btn-export" onclick="location.href='<?= Router::url(['action' => 'export', $course['Course']['id']]) ?>'">エクスポート</button>
-		<button type="button" class="btn btn-primary btn-import" onclick="confirmImport();">インポート</button>
-		<button type="button" class="btn btn-primary btn-add" onclick="location.href='<?= Router::url(['action' => 'add', $course['Course']['id']]) ?>'">+ 追加</button>
+		<button type="button" class="btn btn-primary btn-export" onclick="location.href='<?= Router::url(['action' => 'export', $course['Course']['id']]) ?>'" 
+			 title="本コースに関連するコース情報、コンテンツ情報、テスト問題情報をCSVファイルに出力し、&#13;&#10;関係ファイルをZIPファイルにまとめてダウンロードする">エクスポート</button>
+		<button type="button" class="btn btn-primary btn-import" onclick="location.href='<?= Router::url(['action' => 'import', $course['Course']['id']]) ?>'" 
+			 title="本コースに対し、CSVファイルに定義したコンテンツ情報、テスト問題情報、&#13;&#10;およびZIPファイルにまとめた関連ファイルを追加、またはすべて置き換えを行う">インポート</button>
+		<button type="button" class="btn btn-primary btn-add"    onclick="location.href='<?= Router::url(['action' => 'add',    $course['Course']['id']]) ?>'" 
+			 title="本コースに新たなコンテンツ情報、テスト問題情報、関連ファイルを追加する">+ 追加</button>
 	</div>
 	<div class="alert alert-warning"><?= __('ドラッグアンドドロップでコンテンツの並び順が変更できます。'); ?></div>
 	<table id='sortable-table'>
