@@ -235,4 +235,103 @@ class AppModel extends Model
 		}
 		return $obj;
 	}
+
+	/**
+	 * 数字チェック
+	 * 
+	 * @param string	$val 対象数字
+	 * @param int		$min_num 最小値
+	 * @param int		$max_num 最大値
+	 * @param int		$i 行番号
+	 * @param string	$item 項目名
+	 * @return bool		$is_error false:正常、true:エラー
+	 * @return string	$err_msg エラーの場合、エラーメッセージ
+	 */
+	public function testNumCheck($val, $min_num, $max_num, $i, $item)
+	{
+		$err_msg = '';
+		if ($val != null) {
+			if (!(preg_match("/^[0-9]+$/", $val))) {
+				$err_msg = '<li>' . $i . '行目 : ' . $item . 'が数字ではありません。</li>';
+				return [true, $err_msg];
+			}
+			if (($val < $min_num) || ($val > $max_num)) {
+				$err_msg = '<li>' . $i . '行目 : ' . $item . 'が' . $min_num . '～' . $max_num . 'ではありません。</li>';
+				return [true, $err_msg];
+			}
+		}
+		return [false, $err_msg];
+	}
+
+	/**
+	 * インポート関係HTMLの新環境適合
+	 * 
+	 * @param string	$html インポートHtml
+	 * @param int		$course_id コースID
+	 * @return string	$newHtml 適合後のHTML
+	 * @return array	$ex_files Htmlから抽出したファイルリスト
+	 */
+	public function adaptImportHtml($html, $course_id)
+	{
+		$newHtml = $html;
+		$ex_files = [];
+		if ($newHtml === null) {
+			$newHtml = '<p><br></p>';
+		} else {
+			if (strstr($newHtml, 'file_image')) {
+				if (preg_match_all('/file_image\/(.+?)\/\d+\"/', $newHtml, $rich_images) > 0) {
+					foreach ($rich_images[1] as $image) {
+						array_push($ex_files, $image);
+					}
+				}
+				$newHtml = preg_replace_callback(
+					'/(file_image\/.+?\/)\d+(\")/',
+					function ($m) use ($course_id) {
+						return $m[1] . $course_id . $m[2];
+					},
+					$html
+				);
+				$root_dir = basename(ROOT);
+				$newHtml = preg_replace_callback(
+					'/(img src=\"\/).+?(\/contents\/)/',
+					function ($m) use ($root_dir) {
+						return $m[1] . $root_dir . $m[2];
+					},
+					$newHtml
+				);
+			}
+
+		}
+		return [$newHtml, $ex_files];
+	}
+
+	/**
+	 * インポート用CSVファイルのコメント行チェック
+	 * 
+	 * @param array		$row 1行分のデータ
+	 * @param boolean	&$comment_flg コメント識別フラグ true:コメント内、false:コメント外
+	 * @return boolean	1行分処理済か未処理か true:処理済、false:未処理
+	 */
+	public function comment_check($row, &$comment_flg)
+	{
+		preg_match('/^ *(.+?) *$/', implode(' ', $row), $line_text);
+		// コメント開始ラインか？ 先頭が「/*」
+		if (!$comment_flg) {
+			if (substr_compare($line_text[1], "/*", 0, 2) == 0){
+				if (substr_compare($line_text[1], "*/", -2, 2) == 0){
+					return true;
+				}
+				$comment_flg = true;
+				return true;
+			}
+		} else {
+		// コメントブロック中か？
+		// コメント終了ラインか？ 先頭が「*/」
+			if (substr_compare($line_text[1], "*/", -2, 2) == 0){
+				$comment_flg = false;
+			}
+			return true;
+		}
+		return false;
+	}
 }

@@ -29,11 +29,11 @@ class ContentsQuestion extends AppModel
 				'rule' => ['numeric']
 			]
 		],
-		'question_type' => [
-			'notBlank' => [
-				'rule' => ['notBlank']
-			]
-		],
+	//	'question_type' => [
+	//		'notBlank' => [
+	//			'rule' => ['notBlank']
+	//		]
+	//	],
 		'body' => [
 			'notBlank' => [
 				'rule' => ['notBlank']
@@ -95,7 +95,7 @@ class ContentsQuestion extends AppModel
 	 * 新規追加時の問題のソート番号を取得
 	 * 
 	 * @param array $content_id コンテンツ(テスト)のID
-	 * @return int ソート番号
+	 * @return int  $sort_no ソート番号
 	 */
 	public function getNextSortNo($content_id)
 	{
@@ -130,6 +130,21 @@ class ContentsQuestion extends AppModel
 	}
 
 	/**
+	 * 論理削除テスト問題の削除
+	 * 
+	 * @param int $content_id 削除する論理削除テスト問題のテストコンテンツID
+	 */
+	public function deleteLogicalDelQuestion($content_id)
+	{
+		$params = [
+			'content_id' => $content_id
+		];
+		// 論理削除されたテスト問題の削除
+		$sql = "DELETE FROM ib_contents_questions WHERE sort_no = 99999 and content_id = :content_id;";
+		$this->query($sql, $params);
+	}
+
+	/**
 	 * インポート問題コンテンツの学習履歴を削除
 	 * 
 	 * @param int $content_id インポートした問題コンテンツのID
@@ -152,38 +167,23 @@ class ContentsQuestion extends AppModel
 	/**
 	 * テスト情報の出力
 	 * 
-	 * @param array		$ids_content	出力するコンテンツのIDリスト
-	 * @param string	$fp_csv			出力するCSVのファイルパス
-	 * @param array		$files			出力するファイルを格納するフォルダパス
-	 * @return array	$files 
+	 * @param object	$fp			出力するCSVのファイルハンドル
+	 * @param array		$id_content	出力するコンテンツのID
+	 * @return bool		$is_error	エラー識別（エラー：true, 正常：false）
+	 * @return string	$err_msg	エラーメッセージ
+	 * @return array	$files 		出力するファイルリスト
 	*/
-	public function exportQuestion($ids_content, $fp_csv, $files)
+	public function exportQuestion($fp, $id_content)
 	{
-		$fp = fopen($fp_csv,'a');
+		$is_error = false;
+		$err_msg = '';
+		$files = [];
 
-		//------------------------------//
 		//	問題情報の出力               //
-		//------------------------------//
-		$section = array();
-		$section[] = __('#テスト問題');
-		mb_convert_variables('SJIS-win', 'UTF-8', $section);
-		fputcsv($fp, $section);
-
-		//	問題コンテンツヘッダー行の作成
-		$header_list = Configure::read('export_content_question_header');
-		$header = array();
-		foreach ($header_list as $key => $val)
-		{
-			$header[] = __($val.' ');
-		}
-		// ヘッダー行をCSV出力
-		mb_convert_variables('SJIS-win', 'UTF-8', $header);
-		fputcsv($fp, $header);
-		
 		// パフォーマンスの改善の為、処理を一定件数に分割（ページ数の算出）
 		$limit      = 500;
 		$contentsQuestion_count = $this->find()
-				->where(['content_id IN' => (array)$ids_content])
+				->where(['content_id' => $id_content])
 				->count();	// テスト問題数を取得
 		$page_size = ceil($contentsQuestion_count / $limit);	// ページ数（テスト問題数 / ページ単位）
 		
@@ -193,15 +193,17 @@ class ContentsQuestion extends AppModel
 			// ページ単位でテスト問題情報を取得
 			$this->recursive = 1;
 			$rows = $this->find()
-				->where(['content_id IN' => (array)$ids_content])
+				->where(['content_id' => $id_content])
 				->limit($limit)
 				->page($page)
 				->all();
 			// 問題情報を出力
+			$header_list = Configure::read('export_test_question_header');
 			foreach($rows as $row)
 			{
 				// 出力行を作成
 				$line = array();
+				$line[] = "4";
 				foreach ($header_list as $key => $val)
 				{
 					$line[] = $row['ContentsQuestion'][$key];
@@ -229,9 +231,162 @@ class ContentsQuestion extends AppModel
 				}
 			}
 		}
-		
-		fclose($fp);
 
-		return $files;
+		return [$is_error, $err_msg, $files];
 	}
+
+	/**
+	 * テスト問題情報の入力
+	 * 
+	 * @param int		$course_id	入力するコースのID
+	 * @param int		$content_id	入力するコンテンツのID
+	 * @param array		$csv		入力するCSVデータ
+	 * @param int		$line_index	CSVデータのカレントライン
+	 * @param string	$import_mode	コンテンツの登録モード（追加：a、置換：r）
+	 * @return bool		$is_error	エラー識別（エラー：true, 正常：false）
+	 * @return string	$err_msg	エラーメッセージ
+	 * @return array	$files		インポートファイルリスト
+	*/
+	public function importQuestion($course_id, $content_id, $csv, &$line_index, $import_mode = 'a')
+	{
+		// 戻り値のエラー情報を設定
+		$is_error = false;
+		$err_msg = '';
+		$add_files = [];
+
+		// 指定テストコンテンツのテスト問題状況を確認
+		$questions_content = $this->find()
+			->where(['ContentsQuestion.content_id' => $content_id])
+			->all();
+		$sort_next_no = count($questions_content) + 1;
+
+		// 既存データが存在し、置換モードの場合、該当コンテンツの問題コンテンツに削除フラグ（ダミー）を立てる
+		if ($import_mode == 'r') {
+			foreach ($questions_content as $question_dell) {
+				$question_dell['ContentsQuestion']['sort_no'] = 99999;		// 仮の削除設定
+				$question_dell['ContentsQuestion']['modified'] = date('Y-m-d H:i:s');
+				if (!$this->save($question_dell)) {
+					// 保存時にエラーが発生した場合、モデルからエラー情報を抽出
+					$err_list = $this->validationErrors;
+					foreach ($err_list as $index => $err) {
+						$err_msg .= '<li>' . $index . '件目 : ' . $err[0] . '</li>';
+					}
+					$is_error = true;
+					return [$is_error, $err_msg, $add_files];
+				}
+			}
+			$sort_next_no = 1;
+		}
+
+		// 列名：列番号の定義
+		//------------------------------//
+		$header_list = Configure::read('import_test_question_header');
+		$col_no = 1;
+		$col_list = [];
+		foreach ($header_list as $key => $val) {
+			$col_list[$val] = $col_no;
+			$col_no++;
+		}
+
+		// CSVファイルを解析
+		$comment_flg = false;
+		$content4_flag = false;
+		$count_csv = count($csv);
+
+		while ($line_index < $count_csv) {
+			$line_no = $line_index + 1;
+			$row = $csv[$line_index];
+			$line_index++;
+
+			// コメントチェック
+			if ($this->comment_check($row, $comment_flg)) continue;
+
+			if ($row[0] == 4) {		// テスト問題ラインか？ 先頭列が「4」
+				$content4_flag = true;
+				$data = [];
+				$data['ContentsQuestion'] = [];
+				$this->create();
+				
+				if ($import_mode == 'r') {
+					// 既存テスト問題（仮削除レコード）の確認
+					$ex_data = $this->find()
+						->where(['ContentsQuestion.content_id' => $content_id])
+						->where(['ContentsQuestion.sort_no' => 99999])
+						->first();
+					
+					// 指定したコンテンツIDおよび仮の削除識別(sort_no=99999)の既存コンテンツが存在しない場合、新規追加とする
+					if(!$ex_data) {
+						$data['ContentsQuestion']['created'] = date('Y-m-d H:i:s');
+					} else {
+						$data['ContentsQuestion']['id'] = $ex_data['ContentsQuestion']['id'];
+						$data['ContentsQuestion']['created'] = $ex_data['ContentsQuestion']['created'];
+					}
+				} else {
+					$data['ContentsQuestion']['created'] = date('Y-m-d H:i:s');
+				}
+					
+				// インポートデータの指定の有無を確認しながらテスト問題登録データを作成する
+				$data['ContentsQuestion']['content_id'] = $content_id;
+				$data['ContentsQuestion']['title'] = $row[$col_list['title']];
+				if($row[$col_list['body']] === null) {
+					$is_error = true;
+					$err_msg .= '<li>'.$line_no.'行目 : 問題文が指定されていません。</li>';
+					break;
+				}
+				// リッチテキスト内のコースIDをインポート先のコースIDに変更し、インポートファイルを抽出する
+				$data['ContentsQuestion']['body'] = $row[$col_list['body']];
+				// ファイルチェック（種別：HTML）
+				list($data['ContentsQuestion']['body'], $ex_files) = $this->adaptImportHtml($row[$col_list['body']], $course_id);
+				$add_files = array_merge($add_files, $ex_files);
+
+				$data['ContentsQuestion']['image'] = $row[$col_list['image']];			// ファイル名
+				if($row[$col_list['options']] === null) {
+					$is_error = true;
+					$err_msg .= '<li>'.$line_no.'行目 : 選択肢が指定されていません。</li>';
+					break;
+				}
+				$data['ContentsQuestion']['options'] = $row[$col_list['options']];		// 選択肢
+				if($row[$col_list['correct']] === null) {
+					$is_error = true;
+					$err_msg .= '<li>'.$line_no.'行目 : 正解が指定されていません。</li>';
+					break;
+				}
+				$data['ContentsQuestion']['correct'] = $row[$col_list['correct']];
+				if($row[$col_list['score']] === null) {
+					$is_error = true;
+					$err_msg .= '<li>'.$line_no.'行目 : 得点が指定されていません。</li>';
+					break;
+				}
+				$data['ContentsQuestion']['score'] = $row[$col_list['score']];
+				list($data['ContentsQuestion']['explain'], $ex_files) = $this->adaptImportHtml($row[$col_list['explain']], $course_id);
+				$add_files = array_merge($add_files, $ex_files);
+
+				$data['ContentsQuestion']['sort_no'] = $sort_next_no;
+				$sort_next_no++;
+				$data['ContentsQuestion']['comment'] = $row[$col_list['comment']];
+				$data['ContentsQuestion']['modified'] = date('Y-m-d H:i:s');
+				//------------------------------//
+				//	保存						//
+				//------------------------------//
+				if(!$this->save($data)) {
+					// 保存時にエラーが発生した場合、モデルからエラー情報を抽出
+					$err_list = $this->ContentsQuestion->validationErrors;
+					foreach($err_list as $err) {
+						$err_msg .= '<li>'.$line_no.'行目 : '.$err[0].'</li>';
+					}
+					$is_error = true;
+					break;
+				}
+			} else if (!$content4_flag) {
+				continue;
+			} else if ($content4_flag && $row[0] == '' ) {
+				continue;
+			} else{
+				$line_index--;
+				return [$is_error, $err_msg, $add_files];
+			}		
+		}
+		return [$is_error, $err_msg, $add_files];
+	}
+	
 }

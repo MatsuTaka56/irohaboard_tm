@@ -79,7 +79,7 @@ class Course extends AppModel
 	 * 
 	 * @param int $user_id   アクセス者のユーザID
 	 * @param int $course_id アクセス先のコースのID
-	 * @return bool true: アクセス可能, false : アクセス不可
+	 * @return bool $has_right true: アクセス可能, false : アクセス不可
 	 */
 	public function hasRight($user_id, $course_id)
 	{
@@ -158,37 +158,22 @@ EOF;
 	/**
 	 * コース情報の出力
 	 * 
-	 * @param int $course_id 出力するコースのID
-	 * @param int $fp_csv    出力するCSVのファイルパス
+	 * @param int $fp			出力するCSVのファイルハンドル
+	 * @param int $course_id	出力するコースのID
 	 */
-	public function exportCourse($course_id, $fp_csv)
+	public function exportCourse($fp, $course_id)
 	{
-		$fp = fopen($fp_csv,'w');
+		// 戻り値のエラー情報を設定
+		$is_error = false;
+		$err_msg = '';
 
-		//------------------------------//
-		//	コース情報の出力             //
-		//------------------------------//
-		$section = array();
-		$section[] = __('#コース');
-		mb_convert_variables('SJIS-win', 'UTF-8', $section);
-		fputcsv($fp, $section);
-
-		//	コースヘッダー行の作成
-		$header_list = Configure::read('export_course_header');
-		$header = array();
-		foreach ($header_list as $key => $val)
-		{
-			$header[] = __($val.' ');
-		}
-		// ヘッダー行をCSV出力
-		mb_convert_variables('SJIS-win', 'UTF-8', $header);
-		fputcsv($fp, $header);
-		
 		// コース情報出力行を作成
 		$course =  $this->find()
 			->where(['Course.id' => $course_id])
 			->all();
 		$line = array();
+		$line[] = __('1');
+		$header_list = Configure::read('export_course_header');
 		foreach ($header_list as $key => $val)
 		{
 			$line[] = $course[0]['Course'][$key];
@@ -197,7 +182,203 @@ EOF;
 		mb_convert_variables('SJIS-win', 'UTF-8', $line);
 		fputcsv($fp, $line);
 		
-		fclose($fp);
+		return [$is_error, $err_msg];
+	}
+
+	/**
+	 * 関連ファイルの登録(import)
+	 * 
+	 * @param int $course_id	登録するコースのID
+	 * @param string $zipfile	登録するファイルを含んだZipファイル
+	 * @param array $add_files	登録する関連ファイルのリスト
+	 */
+	public function importFiles($course_id, $zipfile, $add_files)
+	{
+		// ZIPファイル内部の必要ファイルを抽出=>保存する
+		$is_error = false;
+		$err_msg = '';
+
+		// 保存ディレクトリの設定
+		$course_dir = ROOT.DS.APP_DIR.DS.'files'.DS.'course_'.$course_id.DS;
+		if (!file_exists($course_dir))
+		{	// 存在しなければ作成
+			mkdir($course_dir, 0777, true);
+		}
+
+		// ZIPファイルの読み込み=>ファイル名抽出=>$add_filesに含まれるファイルの場合保存
+		$zip = new ZipArchive();
+		if ($zip->open($zipfile['tmp_name']) === TRUE)
+		{	// ZIPファイルがオープンできれば、処理継続
+			// ZIP内のファイルを走査
+			for ($i = 0; $i < $zip->numFiles; $i++)
+			{
+				$entry = $zip->getNameIndex($i);
+				// ディレクトリはスキップ
+				if (substr($entry, -1) === '/')
+				{	// ディレクトリ
+					continue;
+				}
+				// ファイル名を取り出して必要ファイルかを判定
+				$basename = basename($entry);
+				if (in_array(mb_strtolower($basename), array_map('mb_strtolower', $add_files), true))
+				{	// 必要ファイル
+					// 必要な動画、画像、配布資料ファイルだけ保存
+					$content = $zip->getFromIndex($i);
+					file_put_contents($course_dir.$basename, $content);
+				}
+			}
+			$zip->close();
+			// ZIPファイルを開放
+			unlink($zipfile['tmp_name']);
+		}
+		else
+		{
+			$is_error = true;
+			$err_msg .= '<li>画像、動画、配布資料、イメージ用のZIPファイルが読むことができません。</li>';
+		}
+		return [$is_error, $err_msg];
+	}
+		
+	/**
+	 * ヘッダー情報の出力
+	 * 
+	 * @param int $fp    出力するCSVのファイルハンドル
+	 */
+	public function exportHeader($fp)
+	{
+		// 戻り値のエラー情報を設定
+		$is_error = false;
+		$err_msg = '';
+
+		//	Header情報の説明出力             //
+		$section = array();
+		$section[] = __('/* 各行は以下のフォームで出力されます。１はコース情報、２はコンテンツ情報、３はテストコンテンツ情報、４はテスト問題情報です。');
+		mb_convert_variables('SJIS-win', 'UTF-8', $section);
+		fputcsv($fp, $section);
+
+		//	コースヘッダー行の作成
+		$this->csvHeaderOut($fp, Configure::read('export_course_header'), '1');
+		//	コンテンツヘッダー行の作成
+		$this->csvHeaderOut($fp, Configure::read('export_content_header'), '2');
+		//	テストコンテンツヘッダー行の作成
+		$this->csvHeaderOut($fp, Configure::read('export_test_content_header'), '3');
+		//	テスト問題ヘッダー行の作成
+		$this->csvHeaderOut($fp, Configure::read('export_test_question_header'), '4');
+
+		$section = array();
+		$section[] = __('*/');
+		mb_convert_variables('SJIS-win', 'UTF-8', $section);
+		fputcsv($fp, $section);
+
+		return [$is_error, $err_msg];
+	}
+
+	private function csvHeaderOut($fp, $header_list, $line_name)
+	{
+		$header = array();
+		$header[] = __($line_name.' ');
+		foreach ($header_list as $key => $val)
+		{
+			$header[] = __($val.' ');
+		}
+		// テスト問題ヘッダー行をCSV出力
+		mb_convert_variables('SJIS-win', 'UTF-8', $header);
+		fputcsv($fp, $header);
+	}
+
+	/**
+	 * コンテンツ情報の入力
+	 * 
+	 * @param int		$course_id	入力するコースまたはコンテンツのID
+	 * @param array		$csv		入力するCSVデータ
+	 * @return bool		$is_error	エラー識別（エラー：true, 正常：false）
+	 * @return string	$err_msg	エラーメッセージ
+	 * @return array	$files		インポートファイルリスト
+	 */
+	public function importCourse(&$course_id, $csv)
+	{
+		// 戻り値のエラー情報を設定
+		$is_error = false;
+		$err_msg = '';
+		$add_files = [];
+		$line_index = 0;
+		$import_mode = 'a';
+
+		// course_idの最大値を検索(登録時の初期値を設定）)
+		$ex_data = $this->find()
+				->order('Course.id desc')
+				->first();
+		if (!$ex_data){
+			$course_id = 1;
+		} else {
+			$course_id = $ex_data['Course']['id'] + 1;
+		}
+
+		// 列名：列番号の定義
+		$header_list = Configure::read('import_course_header');
+		$col_no = 1;
+		$col_list = [];
+		foreach ($header_list as $key => $val) {
+			$col_list[1][$val] = $col_no;
+			$col_no++;
+		}
+
+		// CSVファイルを解析
+		$comment_flg = false;
+		$count_csv = count($csv);
+
+		while ($line_index < $count_csv) {
+			$line_no = $line_index + 1;
+			$row = $csv[$line_index];
+			$line_index++;
+
+			// コメントチェック
+			if ($this->comment_check($row, $comment_flg)) continue;
+			
+			if (in_array($row[0], ['1'], true)){
+				// コース情報を登録
+				$data = [];
+				$data['Course'] = [];
+				$this->create();
+				// コース登録データ作成処置
+				$data['Course']['id'] = $course_id;
+				// コンテンツ名チェック
+				if ($row[$col_list[$row[0]]['title']] === null) {
+					$is_error = true;
+					$err_msg .= '<li>' . $line_no . '行目 : コース名が指定されていません。</li>';
+					break;
+				}
+				$data['Course']['title'] = $row[$col_list[$row[0]]['title']];
+				$data['Course']['introduction'] = Utils::issetOr($row[$col_list[$row[0]]['introduction']]);
+				$data['Course']['comment'] = Utils::issetOr($row[$col_list[$row[0]]['comment']]);
+				$data['Content']['opened'] = null;
+				$data['Course']['created'] = date('Y-m-d H:i:s');
+				$data['Course']['modified'] = date('Y-m-d H:i:s');
+				$data['Course']['deleted'] = null;
+				$data['Course']['sort_no'] = 0;
+				$data['Course']['user_id'] = 1;
+
+				// コンテンツ処理を呼び出し
+				$ContentModel = ClassRegistry::init('Content');
+				list($is_error, $err_msg, $add_files) = $ContentModel->importContent($course_id, $csv, $line_index, $import_mode);
+				if ($is_error) {
+					return [$is_error, $err_msg, $add_files];
+				}
+				//------------------------------//
+				//	保存						//
+				//------------------------------//
+				if (!$this->save($data)) {
+					// 保存時にエラーが発生した場合、モデルからエラー情報を抽出
+					$err_list = $this->Course->validationErrors;
+					foreach ($err_list as $err) {
+						$err_msg .= '<li>' . $line_no . '行目 : ' . $err[0] . '</li>';
+					}
+					$is_error = true;
+				}
+				break;
+			}
+		}
+		return [$is_error, $err_msg, $add_files];
 	}
 
 }

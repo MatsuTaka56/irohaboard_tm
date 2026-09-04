@@ -11,6 +11,7 @@
 $config['group_status']		= ['1' => '公開', '0' => '非公開'];
 $config['course_status']	= ['1' => '有効', '0' => '無効'];
 $config['content_status']	= ['1' => '公開', '0' => '非公開'];
+$config['content_import_mode']	= ['a' => '追加', 'r' => '置換'];
 $config['content_kind']		= [
 	'label'		=> 'ラベル',
 //	'text'		=> 'テキスト',
@@ -152,6 +153,22 @@ $config['form_defaults'] = [
 	],
 	'class' => 'form-horizontal'
 ];
+// フォームのスタイル(BoostCake)2の基本設定
+$config['form_defaults2'] = [
+	'inputDefaults' => [
+		'div' => 'form-group',
+		'label' => [
+			'class' => 'col col-sm-2 control-label',
+			'style' => [
+				'text-align:left'
+			]
+		],
+		'wrapInput' => 'col col-sm-5',
+	//	'class' => 'form-control'
+	],
+	'class' => 'form-horizontal',
+	'enctype' => 'multipart/form-data'
+];
 
 $config['form_submit_defaults'] = [
 	'div' => false,
@@ -204,11 +221,20 @@ $config['export_course_header'] = [
 	'title' => 'コース名',
 	'introduction' => 'コース紹介',
 	'comment' => '備考',
-	'id' => 'ID',
-	'opened' => 'Opened',
-	'created' => '作成日時',
-	'modified' => '更新日時',
-	'deleted' => '削除日時',
+	//'opened' => 'Opened',
+	//'created' => '作成日時',
+	//'modified' => '更新日時',
+	//'deleted' => '削除日時',
+];
+// コースImport用ヘッダ
+$config['import_course_header'] = [
+	'コース名' => 'title',
+	'コース紹介' => 'introduction',
+	'備考' => 'comment',
+	//'Opened' => 'opened',
+	//'作成日時' => 'created',
+	//'更新日時' => 'modified',
+	//'削除日時' => 'deleted',
 ];
 // コンテンツExport用ヘッダ
 $config['export_content_header'] = [
@@ -217,18 +243,18 @@ $config['export_content_header'] = [
 	'file_name' => 'ファイル名',
 	'url' => 'URL',
 	'body' => 'ページソース',
-	'timelimit' => 'テスト制限時間',
-	'pass_rate' => '合格得点率',
-	'question_count' => '出題数',
-	'wrong_mode' => '不正解時の表示',
+	//'timelimit' => 'テスト制限時間',
+	//'pass_rate' => '合格得点率',
+	//'question_count' => '出題数',
+	//'wrong_mode' => '不正解時の表示',
 	'mode' => 'コンテンツモード',
 	'status' => 'ステータス',
 	'comment' => '備考',
-	'id' => 'ID',
-	'opened' => 'Opened',
-	'created' => '作成日時',
-	'modified' => '更新日時',
-	'deleted' => '削除日時',
+	//'id' => 'ID',
+	//'opened' => 'Opened',
+	//'created' => '作成日時',
+	//'modified' => '更新日時',
+	//'deleted' => '削除日時',
 ];
 // コンテンツImport用ヘッダ
 $config['import_content_header'] = [
@@ -237,38 +263,74 @@ $config['import_content_header'] = [
 	'ファイル名' => 'file_name',
 	'URL' => 'url',
 	'ページソース' => 'body',
+	//'テスト制限時間' => 'timelimit',
+	//'合格得点率' => 'pass_rate',
+	//'出題数' => 'question_count',
+	//'不正解時の表示' => 'wrong_mode',
+	'コンテンツモード' => 'mode',
+	'ステータス' => 'status',
+	'備考' => 'comment',
+	//'ID' => 'id',
+];
+// テストコンテンツExport用ヘッダ
+$config['export_test_content_header'] = [
+	'title' => 'コンテンツ名',
+	'kind' => 'コンテンツ種別',
+	//'file_name' => 'ファイル名',
+	//'url' => 'URL',
+	//'body' => 'ページソース',
+	'timelimit' => 'テスト制限時間',
+	'pass_rate' => '合格得点率',
+	'question_count' => '出題数',
+	'wrong_mode' => '不正解時の表示',
+	//'mode' => 'コンテンツモード',
+	'status' => 'ステータス',
+	'comment' => '備考',
+	//'id' => 'ID',
+	//'opened' => 'Opened',
+	//'created' => '作成日時',
+	//'modified' => '更新日時',
+	//'deleted' => '削除日時',
+];
+// テストコンテンツImport用ヘッダ
+$config['import_test_content_header'] = [
+	'コンテンツ名' => 'title',
+	'コンテンツ種別' => 'kind',
+	//'ファイル名' => 'file_name',
+	//'URL' => 'url',
+	//'ページソース' => 'body',
 	'テスト制限時間' => 'timelimit',
 	'合格得点率' => 'pass_rate',
 	'出題数' => 'question_count',
 	'不正解時の表示' => 'wrong_mode',
-	'コンテンツモード' => 'mode',
+	//'コンテンツモード' => 'mode',
 	'ステータス' => 'status',
 	'備考' => 'comment',
-	'id' => 'ID',
+	//'ID' => 'id',
 ];
 // テスト問題コンテンツのExport用ヘッダ
-$config['export_content_question_header'] = [
+$config['export_test_question_header'] = [
 	'title' => '問題名',
 	'body' => '問題文',
-	'image' => 'ファイル名',
+	//'image' => 'ファイル名',
 	'options' => '選択肢',
 	'correct' => '正解',
 	'score' => '得点',
 	'explain' => '解説',
 	'comment' => '備考',
-	'content_id' => 'ID',
-	'created' => '作成日時',
-	'modified' => '更新日時',
+	//'content_id' => 'ID',
+	//'created' => '作成日時',
+	//'modified' => '更新日時',
 ];
 // テスト問題コンテンツのImport用ヘッダ
-$config['import_content_question_header'] = [
+$config['import_test_question_header'] = [
 	'問題名' => 'title',
 	'問題文' => 'body',
-	'ファイル名' => 'image',
+	//'ファイル名' => 'image',
 	'選択肢' => 'options',
 	'正解' => 'correct',
 	'得点' => 'score',
 	'解説' => 'explain',
 	'備考' => 'comment',
-	'content_id' => 'ID',
+	//'ID' => 'content_id',
 ];

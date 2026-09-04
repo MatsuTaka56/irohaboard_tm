@@ -712,10 +712,14 @@ form .required .control-label:after
 	text-align			: center;
 }
 
-.ib-table-csv,
-.ib-table-import
+.ib-table-csv
 {
 	width				: 90%;
+}
+
+.ib-table-import
+{
+	width: auto;
 }
 
 .ib-table-csv th

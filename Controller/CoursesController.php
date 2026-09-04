@@ -207,4 +207,84 @@ class CoursesController extends AppController
 		return $this->redirect(['action' => 'index']);
 	}
 
+	/**
+	 * コースのインポート
+	 */
+	public function admin_import()
+	{
+		if(Configure::read('demo_mode'))
+			return;
+
+		$err_msg = '';
+		
+		if($this->request->is(['post', 'put']))
+		{
+			// 制限時間を120秒に設定
+			set_time_limit(120);
+			
+			// 画面情報を受け取る
+			$csvfile = $this->request->data['Course']['csvfile'];
+			$zipfile = $this->request->data['Course']['zipfile'];
+			$import_mode = 'a';
+
+			// インポートファイルが指定されていない場合、エラーメッセージを表示
+			if($csvfile['error'] != 0)
+			{
+				$this->Flash->error(__('インポートファイルが指定されていません'));
+				$this->set(compact('err_msg'));
+				return;
+			}
+			
+			// CSVファイルの読み込み
+			$csv = Utils::getCsvData($csvfile['tmp_name']);
+			
+			// 仮データソースを定義
+			$ds = $this->Course->getDataSource();
+			$ds->begin();
+			
+			try
+			{
+				$is_error = false;
+				$err_msg = '';
+				$add_files = [];
+
+				//========== CSVファイル ====================================//
+				// CSVファイルからコース情報（コンテンツ情報、テスト問題含む）を追加登録
+				$course_id = 0;
+				list($is_error, $err_msg, $add_files) = $this->Course->importCourse($course_id, $csv);
+
+				//========== ZIPファイル ====================================//
+				// コース登録でエラーがなく、かつ、インポートファイル(ZIPファイル)が指定されていれば、
+				// ZIPされているファイルをコースフォルダに格納する
+				if (($zipfile['error'] == 0) && (!$is_error))
+				{
+					list($is_error, $err_msg) = $this->fetchTable('Course')->importFiles($course_id, $zipfile, $add_files);
+				}
+				
+				//------------------------------//
+				//	処理結果確認				//
+				//------------------------------//
+				if($is_error)
+				{
+					$ds->rollback();
+					$this->Flash->error(__('インポートに失敗しました'));
+				}
+				else
+				{
+					$ds->commit();
+					$this->Flash->success(__('インポートが完了しました'));
+					return $this->redirect(['action' => 'index', $course_id]);
+				}
+			}
+			catch(Exception $e)
+			{
+				$ds->rollback();
+				$this->Flash->error(__('インポートに失敗しました（except:'.$e.')'));
+			}
+		}
+		
+		$this->set(compact('err_msg'));
+		$this->set('course_id', $course_id);
+	}
+
 }
