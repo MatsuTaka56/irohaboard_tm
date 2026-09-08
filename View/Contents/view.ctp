@@ -127,8 +127,22 @@
 	// 学習終了
 	function finish0(val)
 	{
-		finish(val, <?= $next_page?>);
+		if(<?= $content['Content']['understanding']?> > val ){	
+			var result = window.confirm(
+				'前回の理解度よりも下がっていますが、\n'+
+				'更新してもよろしいでしょうか？');
+        	if( result ) {
+        		//console.log('OKがクリックされました');
+				finish(val, <?= $next_page?>);
+    		}
+    		else {
+        		//console.log('キャンセルがクリックされました');
+    		}
+		} else {
+			finish(val, <?= $next_page?>);
+		}
 	}
+	
 	// ブラウザ戻りボタンで再ロードする
 	window.onpageshow = function(event) {
 		if (event.persisted) {

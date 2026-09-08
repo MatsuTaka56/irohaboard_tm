@@ -71,9 +71,10 @@ class ContentsController extends AppController
 	 * コンテンツの表示
 	 * @param int $content_id 表示するコンテンツのID
 	 */
-	public function view($content_id)
+	public function view($content_id, $understanding = -1)
 	{
 		$content_id = intval($content_id);
+		$understanding = intval($understanding);
 		
 		if(!$this->Content->exists($content_id))
 		{
@@ -126,6 +127,7 @@ class ContentsController extends AppController
 		$content['Content']['mode'] = $content['Content']['wrong_mode'];
 		if($content['Content']['mode'] === null) $content['Content']['mode']=0;
 		if($content['Content']['kind'] === 'label') $content['Content']['mode']=1;
+		$content['Content']['understanding']=$understanding;
 
 		$this->set(compact('content'));
 	}

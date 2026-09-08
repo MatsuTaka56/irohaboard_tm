@@ -153,7 +153,8 @@ $is_admin_record = $this->isAdminPage() && $this->isRecordPage();
 					$content['Content']['title'], [
 					'controller' => 'contents',
 					'action' => 'view',
-					$content['Content']['id']
+					$content['Content']['id'],
+					$content[0]['understanding']
 				]);
 				if($content['Content']['mode'] == 0)	// コンテンツモード＝学習？
 				{
