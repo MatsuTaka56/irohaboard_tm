@@ -115,9 +115,9 @@ class Content extends AppModel
  SELECT Content.*, first_date, last_date, record_id, Record.study_sec, Record.study_count,
        (SELECT understanding
           FROM ib_records h1
-         WHERE h1.id = Record.record_id
-         ORDER BY created
-          DESC LIMIT 1) as understanding,
+          WHERE h1.content_id = Record.content_id
+          ORDER BY is_complete DESC, created DESC
+          LIMIT 1) as understanding,
        (SELECT ifnull(is_passed, 0)
           FROM ib_records h2
          WHERE h2.id = Record.record_id
