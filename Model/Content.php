@@ -544,11 +544,13 @@ EOF;
 					$data['Content']['pass_rate'] = "";
 					$data['Content']['question_count'] = "";
 					$data['Content']['wrong_mode'] = 1;
-					if (in_array($data['Content']['kind'], ['label', 'html', 'url', 'movie', 'pict'])) {
+					if (in_array($data['Content']['kind'], ['html', 'url', 'movie', 'pict'])) {
 						if ($row[$col_list[$row[0]]['mode']] != null) {
 							$data['Content']['wrong_mode'] = Utils::getKeyByValue('content_mode', $row[$col_list[$row[0]]['mode']]);
 						}
-					}
+					} else if (in_array($data['Content']['kind'], ['label', 'file'])) {
+						$data['Content']['wrong_mode'] = 0;
+					} 
 				} else {					// テストコンテンツラインか？ 先頭列が「3」
 					// テストコンテンツ処置
 					list($is_error, $err_msg) = $this->testNumCheck($row[$col_list[$row[0]]['timelimit']], 1, 100, $line_no, 'テスト制限時間');
