@@ -3,17 +3,28 @@ var _studySec = 0;
 $(document).ready(function()
 {
 	setInterval("_studySec++;", 1000);
-	
+
+	var char_color = [];
+	for(key in BUTTON_PC_LIST)
+	{
+		if( key == UNDERSTANDING )
+		{
+			char_color[key] = 'red';
+		}
+		else char_color[key] = 'white';
+	}
 	// PC向けボタンの追加
 	for(key in BUTTON_PC_LIST)
 	{
-		$('.understanding-pc').prepend('<button type="button" class="btn btn-success" onclick="finish0(' + key + ');">' + BUTTON_PC_LIST[key] + '</button>');
+		$('.understanding-pc').prepend('<button type="button" class="btn btn-success" onclick="finish0(' 
+			+ key + ');" style="color: ' + char_color[key] + '">' + BUTTON_PC_LIST[key] + '</button>');
 	}
 	
 	// スマートフォン向けボタンの追加
 	for(key in BUTTON_SPN_LIST)
 	{
-		$('.understanding-spn').prepend('<button type="button" class="btn btn-success" onclick="finish0(' + key + ');">' + BUTTON_SPN_LIST[key] + '</button>');
+		$('.understanding-spn').prepend('<button type="button" class="btn btn-success" onclick="finish0(' 
+			+ key + ');">' + BUTTON_SPN_LIST[key] + '</button>');
 	}
 	
 	// 理解度が複数存在しない場合、メッセージを非表示とする

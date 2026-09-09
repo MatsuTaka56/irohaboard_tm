@@ -35,6 +35,7 @@
 	var URL_CONTNES_VIEW	= '<?= Router::url(['action' => 'view'])?>'; // コンテンツ画面
 	var BUTTON_PC_LIST		= <?= json_encode(Configure::read('record_understanding_pc')) ?>;
 	var BUTTON_SPN_LIST		= <?= json_encode(Configure::read('record_understanding_spn')) ?>;
+	var UNDERSTANDING       = '<?= $content['Content']['understanding'] ?>';
 	</script>
 </head>
 <body>
