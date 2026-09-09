@@ -24,7 +24,7 @@ $(document).ready(function()
 	for(key in BUTTON_SPN_LIST)
 	{
 		$('.understanding-spn').prepend('<button type="button" class="btn btn-success" onclick="finish0(' 
-			+ key + ');">' + BUTTON_SPN_LIST[key] + '</button>');
+			+ key + ');" style="color: ' + char_color[key] + '">' + BUTTON_SPN_LIST[key] + '</button>');
 	}
 	
 	// 理解度が複数存在しない場合、メッセージを非表示とする
