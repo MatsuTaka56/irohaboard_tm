@@ -71,10 +71,9 @@ class ContentsController extends AppController
 	 * コンテンツの表示
 	 * @param int $content_id 表示するコンテンツのID
 	 */
-	public function view($content_id, $understanding = -1)
+	public function view($content_id)
 	{
 		$content_id = intval($content_id);
-		$understanding = intval($understanding);
 		
 		if(!$this->Content->exists($content_id))
 		{
@@ -124,10 +123,20 @@ class ContentsController extends AppController
 			$content['Content']['next_page'] = $next_content['Content']['id'];
 		}
 
+		$content['Content']['understanding'] = -1;
+		$content_understanding = $this->fetchTable('Record')->find()
+					->where(['Record.content_id' => $content['Content']['id'],
+					         'Record.user_id' => $this->viewVars['loginedUser']['id']])
+					->order(['Record.is_complete' => 'DESC', 'Record.created' => 'DESC'])
+					->first();
+		if($content_understanding != null)
+		{
+			$content['Content']['understanding'] = $content_understanding['Record']['understanding'];
+		}
+
 		$content['Content']['mode'] = $content['Content']['wrong_mode'];
 		if($content['Content']['mode'] === null) $content['Content']['mode']=0;
 		if($content['Content']['kind'] === 'label') $content['Content']['mode']=1;
-		$content['Content']['understanding']=$understanding;
 
 		$this->set(compact('content'));
 	}
@@ -150,9 +159,6 @@ class ContentsController extends AppController
 			->where(['Content.course_id' => $course_id])
 			->order('Content.sort_no asc')
 			->all();
-
-		// コース情報を取得
-		$course = $this->Content->Course->get($course_id);
 		
 		$this->set(compact('contents', 'course'));
 	}
