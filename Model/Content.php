@@ -115,12 +115,14 @@ class Content extends AppModel
  SELECT Content.*, first_date, last_date, record_id, Record.study_sec, Record.study_count,
        (SELECT understanding
           FROM ib_records h1
-          WHERE h1.content_id = Record.content_id
+          WHERE h1.user_id    = :user_id
+            AND h1.content_id = Record.content_id
           ORDER BY is_complete DESC, created DESC
           LIMIT 1) as understanding,
        (SELECT ifnull(is_passed, 0)
           FROM ib_records h2
-         WHERE h2.id = Record.record_id
+         WHERE h2.user_id    = :user_id
+           AND h2.id = Record.record_id
          ORDER BY created
           DESC LIMIT 1) as is_passed,
         CompleteRecord.is_complete
