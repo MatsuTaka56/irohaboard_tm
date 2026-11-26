@@ -22,3 +22,5 @@ https://irohaboard.irohasoft.jp/
 ## License
 GPLv3
 
+## おまけ：irohaboard_tm向け追加情報
+irohaboard_tmの改造内容や実行環境の構築手順、サンプルなどの情報を<https://github.com/MatsuTaka56/irohaboard_runtime>にまとめています。
